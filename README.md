@@ -9,7 +9,7 @@ Results on CNN/DailyMail (20/8/2019):
   <tr>
     <th class="tg-0pky">Models</th>
     <th class="tg-0pky">ROUGE-1</th>
-    <th class="tg-0pky">ROUGE-2 |</th>
+    <th class="tg-0pky">ROUGE-2</th>
     <th class="tg-0pky">ROUGE-L</th>
   </tr>
   <tr>
