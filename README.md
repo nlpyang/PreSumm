@@ -9,7 +9,7 @@ Results on CNN/DailyMail (20/8/2019):
   <tr>
     <th class="tg-0pky">Models</th>
     <th class="tg-0pky">ROUGE-1</th>
-    <th class="tg-0pky">ROUGE-2 |</th>
+    <th class="tg-0pky">ROUGE-2</th>
     <th class="tg-0pky">ROUGE-L</th>
   </tr>
   <tr>
@@ -58,18 +58,22 @@ Results on CNN/DailyMail (20/8/2019):
 
 **Python version**: This code is in Python3.6
 
-**Package Requirements**: torch pytorch_transformers tensorboardX multiprocess pyrouge
+**Package Requirements**: torch==1.1.0 pytorch_transformers tensorboardX multiprocess pyrouge
 
 Some codes are borrowed from ONMT(https://github.com/OpenNMT/OpenNMT-py)
 
+## Trained Models
+[CNN/DM](https://drive.google.com/open?id=1-IKVCtc4Q-BdZpjXc4s70_fRsWnjtYLr)
+[XSum](https://drive.google.com/open?id=1H50fClyTkNprWJNh10HWdGEdDdQIkzsI)
+
 ## Data Preparation For XSum
-download https://drive.google.com/open?id=1BWBN1coTWGBqrWoOfRc5dhojPHhatbYs
+[Pre-processed data](https://drive.google.com/open?id=1BWBN1coTWGBqrWoOfRc5dhojPHhatbYs)
 
 
 ## Data Preparation For CNN/Dailymail
 ### Option 1: download the processed data
 
-download https://drive.google.com/open?id=1DN7ClZCCXsk2KegmC6t4ClBwtAf5galI
+[Pre-processed data](https://drive.google.com/open?id=1DN7ClZCCXsk2KegmC6t4ClBwtAf5galI)
 
 unzip the zipfile and put all `.pt` files into `bert_data`
 
