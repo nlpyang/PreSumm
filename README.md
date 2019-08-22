@@ -58,7 +58,7 @@ Results on CNN/DailyMail (20/8/2019):
 
 **Python version**: This code is in Python3.6
 
-**Package Requirements**: torch pytorch_transformers tensorboardX multiprocess pyrouge
+**Package Requirements**: torch==1.1.0 pytorch_transformers tensorboardX multiprocess pyrouge
 
 Some codes are borrowed from ONMT(https://github.com/OpenNMT/OpenNMT-py)
 
