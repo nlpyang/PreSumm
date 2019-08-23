@@ -1,6 +1,6 @@
 # PreSumm
 
-**This code is for EMNLP 2019 paper `Text Summarization with Pretrained Encoders`**
+**This code is for EMNLP 2019 paper [Text Summarization with Pretrained Encoders](https://arxiv.org/abs/1908.08345)**
 
 Results on CNN/DailyMail (20/8/2019):
 
