@@ -187,11 +187,11 @@ class AbsSummarizer(nn.Module):
                                      attention_probs_dropout_prob=args.enc_dropout)
             self.bert.model = BertModel(bert_config)
 
-        # if(args.max_pos>512):
-        #     my_pos_embeddings = nn.Embedding(args.max_pos, self.bert.model.config.hidden_size)
-        #     my_pos_embeddings.weight.data[:512] = self.bert.model.embeddings.position_embeddings.weight.data
-        #     my_pos_embeddings.weight.data[512:] = self.bert.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-512,1)
-        #     self.bert.model.embeddings.position_embeddings = my_pos_embeddings
+        if(args.max_pos>512):
+            my_pos_embeddings = nn.Embedding(args.max_pos, self.bert.model.config.hidden_size)
+            my_pos_embeddings.weight.data[:512] = self.bert.model.embeddings.position_embeddings.weight.data
+            my_pos_embeddings.weight.data[512:] = self.bert.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-512,1)
+            self.bert.model.embeddings.position_embeddings = my_pos_embeddings
         self.vocab_size = self.bert.model.config.vocab_size
         tgt_embeddings = nn.Embedding(self.vocab_size, self.bert.model.config.hidden_size, padding_idx=0)
         if (self.args.share_emb):
