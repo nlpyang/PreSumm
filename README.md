@@ -63,7 +63,10 @@ Results on CNN/DailyMail (20/8/2019):
 Some codes are borrowed from ONMT(https://github.com/OpenNMT/OpenNMT-py)
 
 ## Trained Models
-[CNN/DM](https://drive.google.com/open?id=1-IKVCtc4Q-BdZpjXc4s70_fRsWnjtYLr)
+[CNN/DM Extractive](https://drive.google.com/open?id=1YFWPOPAyf_Uhqj6ny7_-2iZiDy5BXNvL)
+
+[CNN/DM Abstractive](https://drive.google.com/open?id=1-IKVCtc4Q-BdZpjXc4s70_fRsWnjtYLr)
+
 [XSum](https://drive.google.com/open?id=1H50fClyTkNprWJNh10HWdGEdDdQIkzsI)
 
 ## Data Preparation For XSum
