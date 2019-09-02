@@ -191,7 +191,7 @@ def test_ext(args, device_id, pt, step):
     model.eval()
 
     test_iter = data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=False),
-                                       args.batch_size, device,
+                                       args.test_batch_size, device,
                                        shuffle=False, is_test=True)
     trainer = build_trainer(args, device_id, model, None)
     trainer.test(test_iter, step)
