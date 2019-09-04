@@ -1,0 +1,6 @@
+name: presum
+dependencies:
+  - python=3.6
+  - jupyter
+  - pylint
+  - rope
