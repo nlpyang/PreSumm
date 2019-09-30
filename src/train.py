@@ -35,12 +35,14 @@ if __name__ == '__main__':
     parser.add_argument("-result_path", default='../results/cnndm')
     parser.add_argument("-temp_dir", default='../temp')
 
+    parser.add_argument("-bert_version", default='bert-base-uncased', type=str, choices=['bert-base-uncased', 'roberta-base'])
+
+
     parser.add_argument("-batch_size", default=140, type=int)
     parser.add_argument("-test_batch_size", default=200, type=int)
 
     parser.add_argument("-max_pos", default=512, type=int)
     parser.add_argument("-use_interval", type=str2bool, nargs='?',const=True,default=True)
-    parser.add_argument("-large", type=str2bool, nargs='?',const=True,default=False)
     parser.add_argument("-load_from_extractive", default='', type=str)
 
     parser.add_argument("-sep_optim", type=str2bool, nargs='?',const=True,default=False)

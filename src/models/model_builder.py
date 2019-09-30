@@ -2,7 +2,7 @@ import copy
 
 import torch
 import torch.nn as nn
-from pytorch_transformers import BertModel, BertConfig
+from pytorch_transformers import BertModel, BertConfig, RobertaModel, RobertaConfig
 from torch.nn.init import xavier_uniform_
 
 from models.decoder import TransformerDecoder
@@ -113,12 +113,12 @@ def get_generator(vocab_size, dec_hidden_size, device):
     return generator
 
 class Bert(nn.Module):
-    def __init__(self, large, temp_dir, finetune=False):
+    def __init__(self, bert_version, temp_dir, finetune=False):
         super(Bert, self).__init__()
-        if(large):
-            self.model = BertModel.from_pretrained('bert-large-uncased', cache_dir=temp_dir)
-        else:
-            self.model = BertModel.from_pretrained('bert-base-uncased', cache_dir=temp_dir)
+        if(bert_version.startswith('bert')):
+            self.model = BertModel.from_pretrained(bert_version, cache_dir=temp_dir)
+        elif(bert_version.startswith('roberta')):
+            self.model = RobertaModel.from_pretrained(bert_version, cache_dir=temp_dir)
 
         self.finetune = finetune
 
@@ -137,7 +137,7 @@ class ExtSummarizer(nn.Module):
         super(ExtSummarizer, self).__init__()
         self.args = args
         self.device = device
-        self.bert = Bert(args.large, args.temp_dir, args.finetune_bert)
+        self.bert = Bert(args.bert_version, args.temp_dir, args.finetune_bert)
 
         self.ext_layer = ExtTransformerEncoder(self.bert.model.config.hidden_size, args.ext_ff_size, args.ext_heads,
                                                args.ext_dropout, args.ext_layers)
@@ -180,7 +180,7 @@ class AbsSummarizer(nn.Module):
         super(AbsSummarizer, self).__init__()
         self.args = args
         self.device = device
-        self.bert = Bert(args.large, args.temp_dir, args.finetune_bert)
+        self.bert = Bert(args.bert_version, args.temp_dir, args.finetune_bert)
 
         if bert_from_extractive is not None:
             self.bert.model.load_state_dict(
