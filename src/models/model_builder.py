@@ -200,7 +200,6 @@ class AbsSummarizer(nn.Module):
             my_pos_embeddings.weight.data[:512] = self.bert.model.embeddings.position_embeddings.weight.data
             my_pos_embeddings.weight.data[512:] = self.bert.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-512,1)
             self.bert.model.embeddings.position_embeddings = my_pos_embeddings
-        self.  = self.bert.model.config.vocab_size
         tgt_embeddings = nn.Embedding(self.vocab_size, self.bert.model.config.hidden_size, padding_idx=0)
         if (self.args.share_emb):
             tgt_embeddings.weight = copy.deepcopy(self.bert.model.embeddings.word_embeddings.weight)
