@@ -26,12 +26,12 @@ class Batch(object):
             pre_clss = [x[3] for x in data]
             pre_src_sent_labels = [x[4] for x in data]
 
-            src = torch.tensor(self._pad(pre_src, 0))
-            tgt = torch.tensor(self._pad(pre_tgt, 0))
+            src = torch.tensor(self._pad(pre_src, 1))
+            tgt = torch.tensor(self._pad(pre_tgt, 1))
 
             segs = torch.tensor(self._pad(pre_segs, 0))
-            mask_src = 1 - (src == 0)
-            mask_tgt = 1 - (tgt == 0)
+            mask_src = 1 - (src == 1)
+            mask_tgt = 1 - (tgt == 1)
 
 
             clss = torch.tensor(self._pad(pre_clss, -1))

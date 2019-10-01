@@ -213,8 +213,8 @@ class BertData():
         self.sep_token = self.tokenizer.sep_token
         self.cls_token =  self.tokenizer.cls_token
         self.pad_token = self.tokenizer.pad_token
-        self.tgt_bos = '[BOS]'
-        self.tgt_eos = '[EOS]'
+        self.tgt_bos = '[MBOS]'
+        self.tgt_eos = '[MEOS]'
         self.tgt_sent_split = '[SPL]'
 
         self.tokenizer.add_tokens([self.tgt_bos,self.tgt_eos,self.tgt_sent_split])
@@ -264,7 +264,7 @@ class BertData():
 
         tgt_subtoken_idxs = self.tokenizer.encode(tgt_txt)
         tgt_subtoken_idxs = tgt_subtoken_idxs[:self.args.max_tgt_ntokens-2]
-        tgt_subtoken_idxs = [self.tokenizer._convert_token_to_id(self.tgt_bos)]+tgt_subtoken_idxs+ [self.tokenizer._convert_token_to_id(self.tgt_eos)]
+        tgt_subtoken_idxs = self.tokenizer.encode(self.tgt_bos)+tgt_subtoken_idxs+ self.tokenizer.encode(self.tgt_eos)
 
         if ((not is_test) and len(tgt_subtoken_idxs) < self.args.min_tgt_ntokens):
             return None
