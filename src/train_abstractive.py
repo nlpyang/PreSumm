@@ -322,9 +322,9 @@ def train_abs_single(args, device_id):
 
     logger.info(model)
 
-    tokenizer = BertTokenizer.from_pretrained(args.bert_version, do_lower_case=True, cache_dir=args.temp_dir)
-    symbols = {'BOS': tokenizer.vocab['[unused0]'], 'EOS': tokenizer.vocab['[unused1]'],
-               'PAD': tokenizer.vocab['[PAD]'], 'EOQ': tokenizer.vocab['[unused2]']}
+    tokenizer = RobertaTokenizer.from_pretrained(args.bert_version, cache_dir=args.temp_dir)
+    symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
 
     train_loss = abs_loss(model.generator, symbols, model.vocab_size, device, train=True,
                           label_smoothing=args.label_smoothing)
