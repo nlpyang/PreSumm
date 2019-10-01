@@ -124,11 +124,11 @@ class Bert(nn.Module):
 
     def forward(self, x, segs, mask):
         if(self.finetune):
-            top_vec, _ = self.model(x, segs, attention_mask=mask)
+            top_vec, _ = self.model(x, attention_mask=mask)
         else:
             self.eval()
             with torch.no_grad():
-                top_vec, _ = self.model(x, segs, attention_mask=mask)
+                top_vec, _ = self.model(x, attention_mask=mask)
         return top_vec
 
 
