@@ -2,7 +2,7 @@ import copy
 
 import torch
 import torch.nn as nn
-from pytorch_transformers import BertModel, BertConfig, RobertaModel, RobertaConfig
+from pytorch_transformers import BertModel, BertConfig, RobertaModel
 from torch.nn.init import xavier_uniform_
 
 from models.decoder import TransformerDecoder
