@@ -64,7 +64,7 @@ def build_optim_bert(args, model, checkpoint):
             decay_method='noam',
             warmup_steps=args.warmup_steps_bert)
 
-    params = [(n, p) for n, p in list(model.named_parameters()) if n.startswith('bert.model')]
+    params = [(n, p) for n, p in list(model.named_parameters()) if n.startswith('roberta.model')]
     optim.set_parameters(params)
 
 
@@ -95,7 +95,7 @@ def build_optim_dec(args, model, checkpoint):
             decay_method='noam',
             warmup_steps=args.warmup_steps_dec)
 
-    params = [(n, p) for n, p in list(model.named_parameters()) if not n.startswith('bert.model')]
+    params = [(n, p) for n, p in list(model.named_parameters()) if not n.startswith('roberta.model')]
     optim.set_parameters(params)
 
 
@@ -185,7 +185,7 @@ class AbsSummarizer(nn.Module):
         self.bert.model.resize_token_embeddings(self.vocab_size)
         if bert_from_extractive is not None:
             self.bert.model.load_state_dict(
-                dict([(n[11:], p) for n, p in bert_from_extractive.items() if n.startswith('bert.model')]), strict=True)
+                dict([(n[11:], p) for n, p in bert_from_extractive.items() if n.startswith('roberta.model')]), strict=True)
 
         if (args.encoder == 'baseline'):
             bert_config = BertConfig(self.bert.model.config.vocab_size, hidden_size=args.enc_hidden_size,
