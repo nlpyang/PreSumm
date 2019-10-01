@@ -182,6 +182,7 @@ class AbsSummarizer(nn.Module):
         self.device = device
         self.bert = Bert(args.bert_version, args.temp_dir, args.finetune_bert)
         self.bert.model.resize_token_embeddings(self.bert.model.config.vocab_size+100)
+        self.bert.model.config.vocab_size = self.bert.model.config.vocab_size+100
         if bert_from_extractive is not None:
             self.bert.model.load_state_dict(
                 dict([(n[11:], p) for n, p in bert_from_extractive.items() if n.startswith('bert.model')]), strict=True)
@@ -199,7 +200,7 @@ class AbsSummarizer(nn.Module):
             my_pos_embeddings.weight.data[:512] = self.bert.model.embeddings.position_embeddings.weight.data
             my_pos_embeddings.weight.data[512:] = self.bert.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-512,1)
             self.bert.model.embeddings.position_embeddings = my_pos_embeddings
-        self.vocab_size = self.bert.model.config.vocab_size
+        self.  = self.bert.model.config.vocab_size
         tgt_embeddings = nn.Embedding(self.vocab_size, self.bert.model.config.hidden_size, padding_idx=0)
         if (self.args.share_emb):
             tgt_embeddings.weight = copy.deepcopy(self.bert.model.embeddings.word_embeddings.weight)
