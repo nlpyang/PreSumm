@@ -181,7 +181,7 @@ class AbsSummarizer(nn.Module):
         self.args = args
         self.device = device
         self.bert = Bert(args.bert_version, args.temp_dir, args.finetune_bert)
-        self.bert.model.resize_token_embeddings(3)
+        self.bert.model.resize_token_embeddings(self.bert.model.config.vocab_size+3)
         if bert_from_extractive is not None:
             self.bert.model.load_state_dict(
                 dict([(n[11:], p) for n, p in bert_from_extractive.items() if n.startswith('bert.model')]), strict=True)
