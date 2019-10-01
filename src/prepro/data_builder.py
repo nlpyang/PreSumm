@@ -1,3 +1,4 @@
+
 import gc
 import glob
 import hashlib
@@ -14,8 +15,7 @@ import torch
 from multiprocess import Pool
 
 from others.logging import logger
-from others.tokenization import BertTokenizer
-from pytorch_transformers import XLNetTokenizer
+from others.tokenization import BertTokenizer, RobertaTokenizer
 
 from others.utils import clean
 from prepro.utils import _get_word_ngrams
@@ -207,17 +207,20 @@ def hashhex(s):
 class BertData():
     def __init__(self, args):
         self.args = args
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+        self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        # self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
-        self.sep_token = '[SEP]'
-        self.cls_token = '[CLS]'
-        self.pad_token = '[PAD]'
-        self.tgt_bos = '[unused0]'
-        self.tgt_eos = '[unused1]'
-        self.tgt_sent_split = '[unused2]'
-        self.sep_vid = self.tokenizer.vocab[self.sep_token]
-        self.cls_vid = self.tokenizer.vocab[self.cls_token]
-        self.pad_vid = self.tokenizer.vocab[self.pad_token]
+        self.sep_token = self.tokenizer.sep_token
+        self.cls_token =  self.tokenizer.cls_token
+        self.pad_token = self.tokenizer.pad_token
+        self.tgt_bos = '[BOS]'
+        self.tgt_eos = '[EOS]'
+        self.tgt_sent_split = '[SPL]'
+
+        self.tokenizer.add_tokens([self.tgt_bos,self.tgt_eos,self.tgt_sent_split])
+        self.sep_vid = self.tokenizer.sep_token_id
+        self.cls_vid = self.tokenizer.cls_token_id
+        self.pad_vid = self.tokenizer.pad_token_id
 
     def preprocess(self, src, tgt, sent_labels, use_bert_basic_tokenizer=False, is_test=False):
 
@@ -240,13 +243,11 @@ class BertData():
         if ((not is_test) and len(src) < self.args.min_src_nsents):
             return None
 
-        src_txt = [' '.join(sent) for sent in src]
-        text = ' {} {} '.format(self.sep_token, self.cls_token).join(src_txt)
+        src_str = [' '.join([self.cls_token]+sent+[self.sep_token]) for sent in src]
+        src_str = ' '.join(src_str)
 
-        src_subtokens = self.tokenizer.tokenize(text)
+        src_subtoken_idxs = self.tokenizer.encode(src_str)
 
-        src_subtokens = [self.cls_token] + src_subtokens + [self.sep_token]
-        src_subtoken_idxs = self.tokenizer.convert_tokens_to_ids(src_subtokens)
         _segs = [-1] + [i for i, t in enumerate(src_subtoken_idxs) if t == self.sep_vid]
         segs = [_segs[i] - _segs[i - 1] for i in range(1, len(_segs))]
         segments_ids = []
@@ -258,15 +259,16 @@ class BertData():
         cls_ids = [i for i, t in enumerate(src_subtoken_idxs) if t == self.cls_vid]
         sent_labels = sent_labels[:len(cls_ids)]
 
-        tgt_subtokens_str = '[unused0] ' + ' [unused2] '.join(
-            [' '.join(self.tokenizer.tokenize(' '.join(tt), use_bert_basic_tokenizer=use_bert_basic_tokenizer)) for tt in tgt]) + ' [unused1]'
-        tgt_subtoken = tgt_subtokens_str.split()[:self.args.max_tgt_ntokens]
-        if ((not is_test) and len(tgt_subtoken) < self.args.min_tgt_ntokens):
+
+        tgt_txt = (' '+self.tgt_sent_split+' ').join([' '.join(tt) for tt in tgt])
+
+        tgt_subtoken_idxs = self.tokenizer.encode(tgt_txt)
+        tgt_subtoken_idxs = tgt_subtoken_idxs[:self.args.max_tgt_ntokens-2]
+        tgt_subtoken_idxs = [self.tokenizer._convert_token_to_id(self.tgt_bos)]+tgt_subtoken_idxs+ [self.tokenizer._convert_token_to_id(self.tgt_eos)]
+
+        if ((not is_test) and len(tgt_subtoken_idxs) < self.args.min_tgt_ntokens):
             return None
 
-        tgt_subtoken_idxs = self.tokenizer.convert_tokens_to_ids(tgt_subtoken)
-
-        tgt_txt = '<q>'.join([' '.join(tt) for tt in tgt])
         src_txt = [original_src_txt[i] for i in idxs]
 
         return src_subtoken_idxs, sent_labels, tgt_subtoken_idxs, segments_ids, cls_ids, src_txt, tgt_txt
@@ -283,6 +285,7 @@ def format_to_bert(args):
             real_name = json_f.split('/')[-1]
             a_lst.append((corpus_type, json_f, args, pjoin(args.save_path, real_name.replace('json', 'bert.pt'))))
         print(a_lst)
+        # _format_to_bert(a_lst[0])
         pool = Pool(args.n_cpus)
         for d in pool.imap(_format_to_bert, a_lst):
             pass

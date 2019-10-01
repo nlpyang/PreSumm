@@ -46,9 +46,9 @@ if __name__ == '__main__':
 
     parser.add_argument("-mode", default='', type=str)
     parser.add_argument("-select_mode", default='greedy', type=str)
-    parser.add_argument("-map_path", default='../../data/')
-    parser.add_argument("-raw_path", default='../../line_data')
-    parser.add_argument("-save_path", default='../../data/')
+    parser.add_argument("-map_path", default='../data/')
+    parser.add_argument("-raw_path", default='../line_data')
+    parser.add_argument("-save_path", default='../data/')
 
     parser.add_argument("-shard_size", default=2000, type=int)
     parser.add_argument('-min_src_nsents', default=3, type=int)
@@ -61,11 +61,11 @@ if __name__ == '__main__':
     parser.add_argument("-lower", type=str2bool, nargs='?',const=True,default=True)
     parser.add_argument("-use_bert_basic_tokenizer", type=str2bool, nargs='?',const=True,default=False)
 
-    parser.add_argument('-log_file', default='../../logs/cnndm.log')
+    parser.add_argument('-log_file', default='../logs/cnndm.log')
 
     parser.add_argument('-dataset', default='')
 
-    parser.add_argument('-n_cpus', default=2, type=int)
+    parser.add_argument('-n_cpus', default=1, type=int)
 
 
     args = parser.parse_args()
