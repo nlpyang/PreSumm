@@ -64,7 +64,7 @@ def build_optim_bert(args, model, checkpoint):
             decay_method='noam',
             warmup_steps=args.warmup_steps_bert)
 
-    params = [(n, p) for n, p in list(model.named_parameters()) if n.startswith('roberta.model')]
+    params = [(n, p) for n, p in list(model.named_parameters()) if n.startswith('encoder.model')]
     optim.set_parameters(params)
 
 
@@ -95,7 +95,7 @@ def build_optim_dec(args, model, checkpoint):
             decay_method='noam',
             warmup_steps=args.warmup_steps_dec)
 
-    params = [(n, p) for n, p in list(model.named_parameters()) if not n.startswith('roberta.model')]
+    params = [(n, p) for n, p in list(model.named_parameters()) if not n.startswith('encoder.model')]
     optim.set_parameters(params)
 
 
@@ -112,9 +112,9 @@ def get_generator(vocab_size, dec_hidden_size, device):
 
     return generator
 
-class Bert(nn.Module):
+class Encoder(nn.Module):
     def __init__(self, bert_version, temp_dir, finetune=False):
-        super(Bert, self).__init__()
+        super(Encoder, self).__init__()
         if(bert_version.startswith('bert')):
             self.model = BertModel.from_pretrained(bert_version, cache_dir=temp_dir)
         elif(bert_version.startswith('roberta')):
@@ -180,30 +180,30 @@ class AbsSummarizer(nn.Module):
         super(AbsSummarizer, self).__init__()
         self.args = args
         self.device = device
-        self.bert = Bert(args.bert_version, args.temp_dir, args.finetune_bert)
-        self.vocab_size = self.bert.model.config.vocab_size+10
-        self.bert.model.resize_token_embeddings(self.vocab_size)
-        print(list(self.bert.model.named_parameters()))
+        self.encoder = Encoder(args.bert_version, args.temp_dir, args.finetune_bert)
+        self.vocab_size = self.encoder.model.config.vocab_size+10
+        self.encoder.model.resize_token_embeddings(self.vocab_size)
+        # print(list(self.bert.model.named_parameters().keys()))
         if bert_from_extractive is not None:
-            self.bert.model.load_state_dict(
+            self.encoder.model.load_state_dict(
                 dict([(n[11:], p) for n, p in bert_from_extractive.items() if n.startswith('roberta.model')]), strict=True)
 
         if (args.encoder == 'baseline'):
-            bert_config = BertConfig(self.bert.model.config.vocab_size, hidden_size=args.enc_hidden_size,
+            bert_config = BertConfig(self.encoder.model.config.vocab_size, hidden_size=args.enc_hidden_size,
                                      num_hidden_layers=args.enc_layers, num_attention_heads=8,
                                      intermediate_size=args.enc_ff_size,
                                      hidden_dropout_prob=args.enc_dropout,
                                      attention_probs_dropout_prob=args.enc_dropout)
-            self.bert.model = BertModel(bert_config)
+            self.encoder.model = BertModel(bert_config)
 
         if(args.max_pos>512):
-            my_pos_embeddings = nn.Embedding(args.max_pos, self.bert.model.config.hidden_size)
-            my_pos_embeddings.weight.data[:512] = self.bert.model.embeddings.position_embeddings.weight.data
-            my_pos_embeddings.weight.data[512:] = self.bert.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-512,1)
-            self.bert.model.embeddings.position_embeddings = my_pos_embeddings
-        tgt_embeddings = nn.Embedding(self.vocab_size, self.bert.model.config.hidden_size, padding_idx=0)
+            my_pos_embeddings = nn.Embedding(args.max_pos, self.encoder.model.config.hidden_size)
+            my_pos_embeddings.weight.data[:512] = self.encoder.model.embeddings.position_embeddings.weight.data
+            my_pos_embeddings.weight.data[512:] = self.encoder.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-512,1)
+            self.encoder.model.embeddings.position_embeddings = my_pos_embeddings
+        tgt_embeddings = nn.Embedding(self.vocab_size, self.encoder.model.config.hidden_size, padding_idx=0)
         if (self.args.share_emb):
-            tgt_embeddings.weight = copy.deepcopy(self.bert.model.embeddings.word_embeddings.weight)
+            tgt_embeddings.weight = copy.deepcopy(self.encoder.model.embeddings.word_embeddings.weight)
 
         self.decoder = TransformerDecoder(
             self.args.dec_layers,
@@ -231,8 +231,8 @@ class AbsSummarizer(nn.Module):
                 else:
                     p.data.zero_()
             if(args.use_bert_emb):
-                tgt_embeddings = nn.Embedding(self.vocab_size, self.bert.model.config.hidden_size, padding_idx=0)
-                tgt_embeddings.weight = copy.deepcopy(self.bert.model.embeddings.word_embeddings.weight)
+                tgt_embeddings = nn.Embedding(self.vocab_size, self.encoder.model.config.hidden_size, padding_idx=1)
+                tgt_embeddings.weight = copy.deepcopy(self.encoder.model.embeddings.word_embeddings.weight)
                 self.decoder.embeddings = tgt_embeddings
                 self.generator[0].weight = self.decoder.embeddings.weight
 
