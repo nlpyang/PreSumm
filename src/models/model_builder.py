@@ -183,6 +183,7 @@ class AbsSummarizer(nn.Module):
         self.bert = Bert(args.bert_version, args.temp_dir, args.finetune_bert)
         self.vocab_size = self.bert.model.config.vocab_size+10
         self.bert.model.resize_token_embeddings(self.vocab_size)
+        print(list(self.bert.model.named_parameters()))
         if bert_from_extractive is not None:
             self.bert.model.load_state_dict(
                 dict([(n[11:], p) for n, p in bert_from_extractive.items() if n.startswith('roberta.model')]), strict=True)
