@@ -217,19 +217,19 @@ class AbsSummarizer(nn.Module):
         if checkpoint is not None:
             self.load_state_dict(checkpoint['model'], strict=True)
         else:
-            # for module in self.decoder.modules():
-            #     if isinstance(module, (nn.Linear, nn.Embedding)):
-            #         module.weight.data.normal_(mean=0.0, std=0.02)
-            #     elif isinstance(module, nn.LayerNorm):
-            #         module.bias.data.zero_()
-            #         module.weight.data.fill_(1.0)
-            #     if isinstance(module, nn.Linear) and module.bias is not None:
-            #         module.bias.data.zero_()
-            for p in self.decoder.parameters():
-                if p.dim() > 1:
-                    xavier_uniform_(p)
-                else:
-                    p.data.zero_()
+            for module in self.decoder.modules():
+                if isinstance(module, (nn.Linear, nn.Embedding)):
+                    module.weight.data.normal_(mean=0.0, std=0.02)
+                elif isinstance(module, nn.LayerNorm):
+                    module.bias.data.zero_()
+                    module.weight.data.fill_(1.0)
+                if isinstance(module, nn.Linear) and module.bias is not None:
+                    module.bias.data.zero_()
+            # for p in self.decoder.parameters():
+            #     if p.dim() > 1:
+            #         xavier_uniform_(p)
+            #     else:
+            #         p.data.zero_()
             for p in self.generator.parameters():
                 if p.dim() > 1:
                     xavier_uniform_(p)
