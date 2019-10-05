@@ -186,9 +186,9 @@ def validate(args, device_id, pt, step):
                                         args.batch_size, device,
                                         shuffle=False, is_test=False)
 
-    tokenizer = BertTokenizer.from_pretrained(args.bert_version, do_lower_case=True, cache_dir=args.temp_dir)
-    symbols = {'BOS': tokenizer.vocab['[unused0]'], 'EOS': tokenizer.vocab['[unused1]'],
-               'PAD': tokenizer.vocab['[PAD]'], 'EOQ': tokenizer.vocab['[unused2]']}
+    tokenizer = RobertaTokenizer.from_pretrained(args.bert_version, cache_dir=args.temp_dir)
+    symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
 
     valid_loss = abs_loss(model.generator, symbols, model.vocab_size, train=False, device=device)
 
@@ -218,9 +218,9 @@ def test_abs(args, device_id, pt, step):
     test_iter = data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=False),
                                        args.test_batch_size, device,
                                        shuffle=False, is_test=True)
-    tokenizer = BertTokenizer.from_pretrained(args.bert_version, do_lower_case=True, cache_dir=args.temp_dir)
-    symbols = {'BOS': tokenizer.vocab['[unused0]'], 'EOS': tokenizer.vocab['[unused1]'],
-               'PAD': tokenizer.vocab['[PAD]'], 'EOQ': tokenizer.vocab['[unused2]']}
+    tokenizer = RobertaTokenizer.from_pretrained(args.bert_version, cache_dir=args.temp_dir)
+    symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
     predictor = build_predictor(args, tokenizer, symbols, model, logger)
     predictor.translate(test_iter, step)
 
@@ -246,9 +246,9 @@ def test_text_abs(args, device_id, pt, step):
     test_iter = data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=False),
                                        args.test_batch_size, device,
                                        shuffle=False, is_test=True)
-    tokenizer = BertTokenizer.from_pretrained(args.bert_version, do_lower_case=True, cache_dir=args.temp_dir)
-    symbols = {'BOS': tokenizer.vocab['[unused0]'], 'EOS': tokenizer.vocab['[unused1]'],
-               'PAD': tokenizer.vocab['[PAD]'], 'EOQ': tokenizer.vocab['[unused2]']}
+    tokenizer = RobertaTokenizer.from_pretrained(args.bert_version, cache_dir=args.temp_dir)
+    symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
     predictor = build_predictor(args, tokenizer, symbols, model, logger)
     predictor.translate(test_iter, step)
 
