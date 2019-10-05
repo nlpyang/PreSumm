@@ -299,8 +299,9 @@ class Translator(object):
                     for i in range(alive_seq.size(0)):
                         fail = False
                         words = [int(w) for w in alive_seq[i]]
-                        words = [self.vocab.ids_to_tokens[w] for w in words]
-                        words = ' '.join(words).replace(' ##','').split()
+                        # words = [self.vocab.ids_to_tokens[w] for w in words]
+                        # words = ' '.join(words).replace(' ##','').split()
+                        words = self.vocab.decode(words)
                         if(len(words)<=3):
                             continue
                         trigrams = [(words[i-1],words[i],words[i+1]) for i in range(1,len(words)-1)]
