@@ -187,6 +187,11 @@ def validate(args, device_id, pt, step):
                                         shuffle=False, is_test=False)
 
     tokenizer = RobertaTokenizer.from_pretrained(args.bert_version, cache_dir=args.temp_dir)
+    tgt_bos = '[MBOS]'
+    tgt_eos = '[MEOS]'
+    tgt_sent_split = '[SPL]'
+
+    tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
     symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
                'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
 
@@ -219,6 +224,11 @@ def test_abs(args, device_id, pt, step):
                                        args.test_batch_size, device,
                                        shuffle=False, is_test=True)
     tokenizer = RobertaTokenizer.from_pretrained(args.bert_version, cache_dir=args.temp_dir)
+    tgt_bos = '[MBOS]'
+    tgt_eos = '[MEOS]'
+    tgt_sent_split = '[SPL]'
+
+    tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
     symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
                'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
     predictor = build_predictor(args, tokenizer, symbols, model, logger)
@@ -247,6 +257,11 @@ def test_text_abs(args, device_id, pt, step):
                                        args.test_batch_size, device,
                                        shuffle=False, is_test=True)
     tokenizer = RobertaTokenizer.from_pretrained(args.bert_version, cache_dir=args.temp_dir)
+    tgt_bos = '[MBOS]'
+    tgt_eos = '[MEOS]'
+    tgt_sent_split = '[SPL]'
+
+    tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
     symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
                'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
     predictor = build_predictor(args, tokenizer, symbols, model, logger)
@@ -323,6 +338,12 @@ def train_abs_single(args, device_id):
     logger.info(model)
 
     tokenizer = RobertaTokenizer.from_pretrained(args.bert_version, cache_dir=args.temp_dir)
+    tgt_bos = '[MBOS]'
+    tgt_eos = '[MEOS]'
+    tgt_sent_split = '[SPL]'
+
+    tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
+
     symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
                'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
 
