@@ -192,8 +192,8 @@ def validate(args, device_id, pt, step):
     tgt_sent_split = '[SPL]'
 
     tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
-    symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
-               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
+    symbols = {'BOS': tokenizer._convert_token_to_id(tgt_bos), 'EOS': tokenizer._convert_token_to_id(tgt_eos),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id(tgt_sent_split)}
 
     valid_loss = abs_loss(model.generator, symbols, model.vocab_size, train=False, device=device)
 
@@ -229,8 +229,8 @@ def test_abs(args, device_id, pt, step):
     tgt_sent_split = '[SPL]'
 
     tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
-    symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
-               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
+    symbols = {'BOS': tokenizer._convert_token_to_id(tgt_bos), 'EOS': tokenizer._convert_token_to_id(tgt_eos),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id(tgt_sent_split)}
     predictor = build_predictor(args, tokenizer, symbols, model, logger)
     predictor.translate(test_iter, step)
 
@@ -262,8 +262,8 @@ def test_text_abs(args, device_id, pt, step):
     tgt_sent_split = '[SPL]'
 
     tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
-    symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
-               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
+    symbols = {'BOS': tokenizer._convert_token_to_id(tgt_bos), 'EOS': tokenizer._convert_token_to_id(tgt_eos),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id(tgt_sent_split)}
     predictor = build_predictor(args, tokenizer, symbols, model, logger)
     predictor.translate(test_iter, step)
 
@@ -344,8 +344,8 @@ def train_abs_single(args, device_id):
 
     tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
 
-    symbols = {'BOS': tokenizer._convert_token_to_id('[BOS]'), 'EOS': tokenizer._convert_token_to_id('[EOS]'),
-               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id('[SPL]')}
+    symbols = {'BOS': tokenizer._convert_token_to_id(tgt_bos), 'EOS': tokenizer._convert_token_to_id(tgt_eos),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id(tgt_sent_split)}
 
     train_loss = abs_loss(model.generator, symbols, model.vocab_size, device, train=True,
                           label_smoothing=args.label_smoothing)
