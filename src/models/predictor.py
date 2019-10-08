@@ -104,8 +104,10 @@ class Translator(object):
 
         translations = []
         for b in range(batch_size):
-            pred_sents = self.vocab.decode([int(n) for n in preds[b][0]])
-            pred_str = ' '.join(pred_sents)
+            pred_str = self.vocab.decode([int(n) for n in preds[b][0]])
+            if (isinstance(pred_str, list)):
+                pred_str = ' '.join(pred_str)
+
 
             gold_sent = ' '.join(tgt_str[b].split())
             # translation = Translation(fname[b],src[:, b] if src is not None else None,
@@ -114,7 +116,9 @@ class Translator(object):
             #                           gold_score[b])
             # src = self.spm.DecodeIds([int(t) for t in translation_batch['batch'].src[0][5] if int(t) != len(self.spm)])
             raw_src = self.vocab.decode([int(t) for t in src[b]][:500])
-            raw_src = ' '.join(raw_src)
+            if (isinstance(raw_src, list)):
+                raw_src = ' '.join(raw_src)
+
             translation = (pred_str, gold_sent, raw_src)
             # translation = (pred_sents[0], gold_sent)
             translations.append(translation)
@@ -302,7 +306,10 @@ class Translator(object):
                         words = [int(w) for w in alive_seq[i]]
                         # words = [self.vocab.ids_to_tokens[w] for w in words]
                         # words = ' '.join(words).replace(' ##','').split()
-                        words = ' '.join(self.vocab.decode(words)).split()
+                        words = (self.vocab.decode(words))
+                        if(isinstance(words, list)):
+                            words = ' '.join(words)
+                        words = words.split()
                         if(len(words)<=3):
                             continue
                         trigrams = [(words[i-1],words[i],words[i+1]) for i in range(1,len(words)-1)]
