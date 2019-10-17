@@ -30,13 +30,13 @@ class Batch(object):
             tgt = torch.tensor(self._pad(pre_tgt, 1))
 
             segs = torch.tensor(self._pad(pre_segs, 0))
-            mask_src = 1 - (src == 1)
-            mask_tgt = 1 - (tgt == 1)
+            mask_src = 1 - (src == 1).float()
+            mask_tgt = 1 - (tgt == 1).float()
 
 
             clss = torch.tensor(self._pad(pre_clss, -1))
             src_sent_labels = torch.tensor(self._pad(pre_src_sent_labels, 0))
-            mask_cls = 1 - (clss == -1)
+            mask_cls = 1 - (clss == -1).float()
             clss[clss == -1] = 0
             setattr(self, 'clss', clss.to(device))
             setattr(self, 'mask_cls', mask_cls.to(device))
