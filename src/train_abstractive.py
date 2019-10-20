@@ -344,8 +344,8 @@ def train_abs_single(args, device_id):
 
     tokenizer.add_tokens([tgt_bos, tgt_eos, tgt_sent_split])
 
-    symbols = {'BOS': tokenizer._convert_token_to_id(tgt_bos), 'EOS': tokenizer._convert_token_to_id(tgt_eos),
-               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer._convert_token_to_id(tgt_sent_split)}
+    symbols = {'BOS': tokenizer.encode(tgt_bos), 'EOS': tokenizer.encode(tgt_eos),
+               'PAD': tokenizer.pad_token_id, 'EOQ': tokenizer.encode(tgt_sent_split)}
 
     train_loss = abs_loss(model.generator, symbols, model.vocab_size, device, train=True,
                           label_smoothing=args.label_smoothing)
