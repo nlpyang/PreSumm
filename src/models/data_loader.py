@@ -94,7 +94,7 @@ def load_dataset(args, corpus_type, shuffle):
         yield _lazy_dataset_loader(pt, corpus_type)
 
 
-def abs_batch_size_fn(new, count):
+def abs_batch_size_fn(new, count, max_ndocs_in_batch=6):
     src, tgt = new[0], new[1]
     global max_n_sents, max_n_tokens, max_size
     if count == 1:
@@ -104,9 +104,10 @@ def abs_batch_size_fn(new, count):
     max_n_sents = max(max_n_sents, len(tgt))
     max_size = max(max_size, max_n_sents)
     src_elements = count * max_size
-    if (count > 6):
+    if (count > max_ndocs_in_batch):
         return src_elements + 1e3
     return src_elements
+
 
 
 def ext_batch_size_fn(new, count):
@@ -225,13 +226,13 @@ class DataIterator(object):
             if(ex is None):
                 continue
             minibatch.append(ex)
-            size_so_far = self.batch_size_fn(ex, len(minibatch))
+            size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
             if size_so_far == batch_size:
                 yield minibatch
                 minibatch, size_so_far = [], 0
             elif size_so_far > batch_size:
                 yield minibatch[:-1]
-                minibatch, size_so_far = minibatch[-1:], self.batch_size_fn(ex, 1)
+                minibatch, size_so_far = minibatch[-1:], self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
         if minibatch:
             yield minibatch
 
@@ -240,13 +241,13 @@ class DataIterator(object):
         minibatch, size_so_far = [], 0
         for ex in data:
             minibatch.append(ex)
-            size_so_far = self.batch_size_fn(ex, len(minibatch))
+            size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
             if size_so_far == batch_size:
                 yield minibatch
                 minibatch, size_so_far = [], 0
             elif size_so_far > batch_size:
                 yield minibatch[:-1]
-                minibatch, size_so_far = minibatch[-1:], self.batch_size_fn(ex, 1)
+                minibatch, size_so_far = minibatch[-1:], self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
         if minibatch:
             yield minibatch
 
