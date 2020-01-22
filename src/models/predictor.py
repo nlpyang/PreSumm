@@ -144,8 +144,10 @@ class Translator(object):
             for batch in data_iter:
                 if(self.args.recall_eval):
                     gold_tgt_len = batch.tgt.size(1)
-                    self.min_length = gold_tgt_len + 20
-                    self.max_length = gold_tgt_len + 60
+                    # self.min_length = gold_tgt_len + 20
+                    # self.max_length = gold_tgt_len + 60
+                    self.min_length = gold_tgt_len + 10
+                    self.max_length = gold_tgt_len + 20
                 batch_data = self.translate_batch(batch)
                 translations = self.from_batch(batch_data)
 
@@ -154,24 +156,21 @@ class Translator(object):
                     pred_str = pred.replace('[unused0]', '').replace('[unused3]', '').replace('[PAD]', '').replace('[unused1]', '').replace(r' +', ' ').replace(' [unused2] ', '<q>').replace('[unused2]', '').strip()
                     gold_str = gold.strip()
                     if(self.args.recall_eval):
-                        _pred_str = ''
-                        gap = 1e3
-                        for sent in pred_str.split('<q>'):
-                            can_pred_str = _pred_str+ '<q>'+sent.strip()
-                            can_gap = math.fabs(len(_pred_str.split())-len(gold_str.split()))
-                            # if(can_gap>=gap):
-                            if(len(can_pred_str.split())>=len(gold_str.split())+10):
-                                pred_str = _pred_str
-                                break
-                            else:
-                                gap = can_gap
-                                _pred_str = can_pred_str
+                        # _pred_str = ''
+                        # for sent in pred_str.split('<q>'):
+                        #     can_pred_str = _pred_str+ '<q>'+sent.strip()
+                        #     can_gap = math.fabs(len(_pred_str.split())-len(gold_str.split()))
+                        #     # if(can_gap>=gap):
+                        #     if(len(can_pred_str.split())>=len(gold_str.split())+10):
+                        #         pred_str = _pred_str
+                        #         break
+                        #     else:
+                        #         _pred_str = can_pred_str
 
 
 
-                        # pred_str = ' '.join(pred_str.split()[:len(gold_str.split())])
-                    # self.raw_can_out_file.write(' '.join(pred).strip() + '\n')
-                    # self.raw_gold_out_file.write(' '.join(gold).strip() + '\n')
+                        pred_str = ' '.join(pred_str.split()[:len(gold_str.split())])
+
                     self.can_out_file.write(pred_str + '\n')
                     self.gold_out_file.write(gold_str + '\n')
                     self.src_out_file.write(src.strip() + '\n')
