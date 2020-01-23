@@ -145,9 +145,6 @@ python train.py  -task abs -mode train -bert_data_path BERT_DATA_PATH -dec_dropo
 ```
 * `EXT_CKPT` is the saved `.pt` checkpoint of the extractive model.
 
-
-
-
 ## Model Evaluation
 ```
  python train.py -task abs -mode validate -batch_size 3000 -test_batch_size 500 -bert_data_path BERT_DATA_PATH -log_file ../logs/val_abs_bert_cnndm -model_path MODEL_PATH -sep_optim true -use_interval true -visible_gpus 1 -max_pos 512 -max_length 200 -alpha 0.95 -min_length 50 -result_path ../logs/abs_bert_cnndm 
@@ -155,5 +152,20 @@ python train.py  -task abs -mode train -bert_data_path BERT_DATA_PATH -dec_dropo
 * `-mode` can be {`validate, test`}, where `validate` will inspect the model directory and evaluate the model for each newly saved checkpoint, `test` need to be used with `-test_from`, indicating the checkpoint you want to use
 * `MODEL_PATH` is the directory of saved checkpoints
 * use `-mode valiadte` with `-test_all`, the system will load all saved checkpoints and select the top ones to generate summaries (this will take a while)
+
+## Raw Text Input 
+
+### Abstractive Summarization
+    
+```
+ python train.py -task abs -mode test_text -visible_gpus 0 -test_from PATH_TO_CHECKPOINT -text_src PATH_TO_SRC -text_tgt PATH_TO_TGT -log_file ../logs/abs_bert_cnndm
+```
+### Extractive Summarization
+
+```
+ python train.py -task ext -mode test_text -visible_gpus 0 -test_from PATH_TO_CHECKPOINT -text_src PATH_TO_SRC -text_tgt PATH_TO_TGT -log_file ../logs/abs_bert_cnndm
+```
+
+
 
 
