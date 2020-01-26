@@ -22,7 +22,7 @@ import os
 import unicodedata
 from io import open
 
-from transformers import cached_path
+from pytorch_transformers import cached_path
 
 logger = logging.getLogger(__name__)
 
