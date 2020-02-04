@@ -156,9 +156,15 @@ python train.py  -task abs -mode train -bert_data_path BERT_DATA_PATH -dec_dropo
 ## Raw Text Input 
 
 ### Abstractive Summarization
-    
+
+Source File    
 ```
  python train.py -task abs -mode test_text -visible_gpus 0 -test_from PATH_TO_CHECKPOINT -text_src PATH_TO_SRC -text_tgt PATH_TO_TGT -log_file ../logs/abs_bert_cnndm
+```
+
+String Input
+```python
+python train.py -task abs -mode test_text -visible_gpus 0 -test_from ../models/model_step_148000.pt -text_src 'this is a string test' -input_type str -log_file ../logs/abs_bert_cnndm
 ```
 ### Extractive Summarization
 
