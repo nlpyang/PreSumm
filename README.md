@@ -2,6 +2,15 @@
 
 **This code is for EMNLP 2019 paper [Text Summarization with Pretrained Encoders](https://arxiv.org/abs/1908.08345)**
 
+**Updates Jan 22 2020**: Now you can **Summarize Raw Text Input!**. Swith to the dev branch, and use `-text_src $RAW_SRC.TXT` to input your text file.
+* use `-test_from $PT_FILE$` to use your model checkpoint file.
+* Format of the source text file:
+  * For **abstractive summarization**, each line is a document.
+  * If you want to do **extractive summarization**, please insert ` [CLS] [SEP] ` as your sentence boundaries.
+* There are example input files in the [raw_data directory](https://github.com/nlpyang/PreSumm/tree/dev/raw_data)
+* If you also have reference summaries aligned with your source input, please use `-text_tgt $RAW_TGT.TXT` to keep the order for evaluation.
+
+
 Results on CNN/DailyMail (20/8/2019):
 
 
@@ -60,17 +69,25 @@ Results on CNN/DailyMail (20/8/2019):
 
 **Package Requirements**: torch==1.1.0 pytorch_transformers tensorboardX multiprocess pyrouge
 
+
+
 **Updates**: For encoding a text longer than 512 tokens, for example 800. Set max_pos to 800 during both preprocessing and training.
 
 
 Some codes are borrowed from ONMT(https://github.com/OpenNMT/OpenNMT-py)
 
 ## Trained Models
-[CNN/DM Extractive](https://drive.google.com/open?id=1kKWoV0QCbeIuFt85beQgJ4v0lujaXobJ)
+[CNN/DM BertExt](https://drive.google.com/open?id=1kKWoV0QCbeIuFt85beQgJ4v0lujaXobJ)
 
-[CNN/DM Abstractive](https://drive.google.com/open?id=1-IKVCtc4Q-BdZpjXc4s70_fRsWnjtYLr)
+[CNN/DM BertExtAbs](https://drive.google.com/open?id=1-IKVCtc4Q-BdZpjXc4s70_fRsWnjtYLr)
 
-[XSum](https://drive.google.com/open?id=1H50fClyTkNprWJNh10HWdGEdDdQIkzsI)
+[CNN/DM TransformerAbs](https://drive.google.com/open?id=1yLCqT__ilQ3mf5YUUCw9-UToesX5Roxy)
+
+[XSum BertExtAbs](https://drive.google.com/open?id=1H50fClyTkNprWJNh10HWdGEdDdQIkzsI)
+
+## System Outputs
+
+[CNN/DM and XSum](https://drive.google.com/file/d/1kYA384UEAQkvmZ-yWZAfxw7htCbCwFzC) 
 
 ## Data Preparation For XSum
 [Pre-processed data](https://drive.google.com/open?id=1BWBN1coTWGBqrWoOfRc5dhojPHhatbYs)
@@ -133,7 +150,7 @@ python train.py -task ext -mode train -bert_data_path BERT_DATA_PATH -ext_dropou
 
 #### TransformerAbs (baseline)
 ```
-python train.py -mode train -accum_count 5 -batch_size 300 -bert_data_path BERT_DATA_PATH -dec_dropout 0.1 -log_file ../../logs/cnndm_baseline -lr 0.1 -model_path MODEL_PATH -save_checkpoint_steps 2000 -seed 777 -sep_optim false -train_steps 200000 -use_bert_emb true -use_interval true -warmup_steps 8000  -visible_gpus 0,1,2,3 -max_pos 512 -report_every 50 -enc_hidden_size 512  -enc_layers 6 -enc_ff_size 2048 -enc_dropout 0.1 -dec_layers 6 -dec_hidden_size 512 -dec_ff_size 2048 -encoder baseline -task abs
+python train.py -mode train -accum_count 5 -batch_size 300 -bert_data_path BERT_DATA_PATH -dec_dropout 0.1 -log_file ../../logs/cnndm_baseline -lr 0.05 -model_path MODEL_PATH -save_checkpoint_steps 2000 -seed 777 -sep_optim false -train_steps 200000 -use_bert_emb true -use_interval true -warmup_steps 8000  -visible_gpus 0,1,2,3 -max_pos 512 -report_every 50 -enc_hidden_size 512  -enc_layers 6 -enc_ff_size 2048 -enc_dropout 0.1 -dec_layers 6 -dec_hidden_size 512 -dec_ff_size 2048 -encoder baseline -task abs
 ```
 #### BertAbs
 ```
@@ -146,8 +163,13 @@ python train.py  -task abs -mode train -bert_data_path BERT_DATA_PATH -dec_dropo
 * `EXT_CKPT` is the saved `.pt` checkpoint of the extractive model.
 
 ## Model Evaluation
+### CNN/DM
 ```
  python train.py -task abs -mode validate -batch_size 3000 -test_batch_size 500 -bert_data_path BERT_DATA_PATH -log_file ../logs/val_abs_bert_cnndm -model_path MODEL_PATH -sep_optim true -use_interval true -visible_gpus 1 -max_pos 512 -max_length 200 -alpha 0.95 -min_length 50 -result_path ../logs/abs_bert_cnndm 
+```
+### XSum
+```
+ python train.py -task abs -mode validate -batch_size 3000 -test_batch_size 500 -bert_data_path BERT_DATA_PATH -log_file ../logs/val_abs_bert_cnndm -model_path MODEL_PATH -sep_optim true -use_interval true -visible_gpus 1 -max_pos 512 -min_length 20 -max_length 100 -alpha 0.9 -result_path ../logs/abs_bert_cnndm 
 ```
 * `-mode` can be {`validate, test`}, where `validate` will inspect the model directory and evaluate the model for each newly saved checkpoint, `test` need to be used with `-test_from`, indicating the checkpoint you want to use
 * `MODEL_PATH` is the directory of saved checkpoints
@@ -171,7 +193,3 @@ python train.py -task abs -mode test_text -visible_gpus 0 -test_from ../models/m
 ```
  python train.py -task ext -mode test_text -visible_gpus 0 -test_from PATH_TO_CHECKPOINT -text_src PATH_TO_SRC -text_tgt PATH_TO_TGT -log_file ../logs/abs_bert_cnndm
 ```
-
-
-
-
