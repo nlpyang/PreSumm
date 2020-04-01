@@ -111,7 +111,7 @@ def abs_batch_size_fn(new, count, max_ndocs_in_batch=6):
 
 
 
-def ext_batch_size_fn(new, count):
+def ext_batch_size_fn(new, count, max_ndocs_in_batch=6):
     if (len(new) == 4):
         pass
     src, labels = new[0], new[4]
@@ -220,8 +220,7 @@ class DataIterator(object):
             if(ex is None):
                 continue
             minibatch.append(ex)
-            # size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
-            size_so_far = self.batch_size_fn(ex, len(minibatch))
+            size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
             if size_so_far == batch_size:
                 yield minibatch
                 minibatch, size_so_far = [], 0
@@ -236,14 +235,13 @@ class DataIterator(object):
         minibatch, size_so_far = [], 0
         for ex in data:
             minibatch.append(ex)
-            # size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
-            size_so_far = self.batch_size_fn(ex, len(minibatch))
+            size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
             if size_so_far == batch_size:
                 yield minibatch
                 minibatch, size_so_far = [], 0
             elif size_so_far > batch_size:
                 yield minibatch[:-1]
-                minibatch, size_so_far = minibatch[-1:], self.batch_size_fn(ex, len(minibatch))
+                minibatch, size_so_far = minibatch[-1:], self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
         if minibatch:
             yield minibatch
 
