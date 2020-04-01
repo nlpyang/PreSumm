@@ -187,11 +187,6 @@ class DataIterator(object):
         xs = self.dataset
         return xs
 
-
-
-
-
-
     def preprocess(self, ex, is_test):
         src = ex['src']
         tgt = ex['tgt'][:self.args.max_tgt_len][:-1]+[2]
@@ -211,8 +206,6 @@ class DataIterator(object):
         clss = clss[:max_sent_id]
         # src_txt = src_txt[:max_sent_id]
 
-
-
         if(is_test):
             return src, tgt, segs, clss, src_sent_labels, src_txt, tgt_txt
         else:
@@ -227,7 +220,8 @@ class DataIterator(object):
             if(ex is None):
                 continue
             minibatch.append(ex)
-            size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
+            # size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
+            size_so_far = self.batch_size_fn(ex, len(minibatch))
             if size_so_far == batch_size:
                 yield minibatch
                 minibatch, size_so_far = [], 0
@@ -242,13 +236,14 @@ class DataIterator(object):
         minibatch, size_so_far = [], 0
         for ex in data:
             minibatch.append(ex)
-            size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
+            # size_so_far = self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
+            size_so_far = self.batch_size_fn(ex, len(minibatch))
             if size_so_far == batch_size:
                 yield minibatch
                 minibatch, size_so_far = [], 0
             elif size_so_far > batch_size:
                 yield minibatch[:-1]
-                minibatch, size_so_far = minibatch[-1:], self.batch_size_fn(ex, len(minibatch), self.args.max_ndocs_in_batch)
+                minibatch, size_so_far = minibatch[-1:], self.batch_size_fn(ex, len(minibatch))
         if minibatch:
             yield minibatch
 
