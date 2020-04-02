@@ -293,6 +293,7 @@ def load_text(args, source_fp, target_fp, device):
     def _process_src(raw):
         raw = raw.strip().lower()
         src_subtokens = tokenizer.tokenize(raw)
+        src_subtokens = [token.replace('##.', '[SEP]') for token in src_subtokens]
         src_subtokens = ['[CLS]'] + src_subtokens + ['[SEP]']
         src_subtoken_idxs = tokenizer.convert_tokens_to_ids(src_subtokens)
         src_subtoken_idxs = src_subtoken_idxs[:-1][:args.max_pos]
