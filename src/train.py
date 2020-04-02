@@ -13,7 +13,6 @@ from train_extractive import train_ext, validate_ext, test_ext, test_text_ext
 model_flags = ['hidden_size', 'ff_size', 'heads', 'emb_size', 'enc_layers', 'enc_hidden_size', 'enc_ff_size',
                'dec_layers', 'dec_hidden_size', 'dec_ff_size', 'encoder', 'ff_actv', 'use_interval']
 
-
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
@@ -21,8 +20,6 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
-
-
 
 
 if __name__ == '__main__':
@@ -78,8 +75,6 @@ if __name__ == '__main__':
     parser.add_argument("--max_length", default=150, type=int)
     parser.add_argument("--max_tgt_len", default=140, type=int)
 
-
-
     parser.add_argument("--param_init", default=0, type=float)
     parser.add_argument("--param_init_glorot", type=str2bool, nargs='?',const=True,default=True)
     parser.add_argument("--optim", default='adam', type=str)
@@ -96,7 +91,6 @@ if __name__ == '__main__':
     parser.add_argument("--report_every", default=1, type=int)
     parser.add_argument("--train_steps", default=1000, type=int)
     parser.add_argument("--recall_eval", type=str2bool, nargs='?',const=True,default=False)
-
 
     parser.add_argument('--visible_gpus', default='-1', type=str)
     parser.add_argument('--gpu_ranks', default='0', type=str)
