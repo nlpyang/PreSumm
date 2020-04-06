@@ -292,6 +292,7 @@ def load_text(args, source_fp, target_fp, device):
 
     def _process_src(raw):
         raw = raw.strip().lower()
+        raw = raw.replace('[cls]','[CLS]').replace('[sep]','[SEP]')
         src_subtokens = tokenizer.tokenize(raw)
         src_subtokens = [token.replace('##.', '[SEP]') for token in src_subtokens]
         src_subtokens = ['[CLS]'] + src_subtokens + ['[SEP]']
