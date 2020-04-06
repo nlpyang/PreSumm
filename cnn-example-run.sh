@@ -15,7 +15,8 @@ java edu.stanford.nlp.pipeline.StanfordCoreNLP \
   -filelist mapping_for_corenlp.txt \
   -outputFormat json \
   -outputDirectory ./results
-#note: mapping_for_corenlp.txt is actually a file you need to make that should contain one input_file per line
+# note: mapping_for_corenlp.txt is actually a file you need to make that should contain one input_file per line
+# ouput in results directory
 
 
 # STEP 3
@@ -82,7 +83,7 @@ python src/train.py \
   --warmup_steps 100 \
   --max_pos 512 \
   --train_steps 100 \
-  --visible_gpus 0 \
+  --visible_gpus 0 \ # if machine has 1 gpu
   --model_path models/ \
   --result_path results \
   --bert_data_path bert_data/cnndm_sample \
