@@ -5,6 +5,7 @@
 **Updates Jan 22 2020**: Now you can **Summarize Raw Text Input!**. Swith to the dev branch, and use `-mode test_text` and use `-text_src $RAW_SRC.TXT` to input your text file. Please still use master branch for normal training and evaluation, dev branch should be only used for test_text mode.
 * abstractive use -task abs, extractive use -task ext
 * use `-test_from $PT_FILE$` to use your model checkpoint file.
+* for abstractive use -task abs
 * Format of the source text file:
   * For **abstractive summarization**, each line is a document.
   * If you want to do **extractive summarization**, please insert ` [CLS] [SEP] ` as your sentence boundaries.
