@@ -258,7 +258,7 @@ def baseline(args, cal_lead=False, cal_oracle=False):
                                        args.batch_size, 'cpu',
                                        shuffle=False, is_test=True)
 
-    trainer = build_trainer(args, '-1', None, None, None)
+    trainer = build_trainer(args, -1, None, None, None)
     #
     if (cal_lead):
         trainer.test(test_iter, 0, cal_lead=True)
