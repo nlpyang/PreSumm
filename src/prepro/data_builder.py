@@ -207,12 +207,12 @@ def hashhex(s):
 class BertData():
     def __init__(self, args):
         self.args = args
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased', do_lower_case=True)
 
         self.sep_token = '[SEP]'
         self.cls_token = '[CLS]'
         self.pad_token = '[PAD]'
-        self.tgt_bos = '[unused0]'
+        self.tgt_bos = '[unused7]'
         self.tgt_eos = '[unused1]'
         self.tgt_sent_split = '[unused2]'
         self.sep_vid = self.tokenizer.vocab[self.sep_token]
@@ -258,7 +258,7 @@ class BertData():
         cls_ids = [i for i, t in enumerate(src_subtoken_idxs) if t == self.cls_vid]
         sent_labels = sent_labels[:len(cls_ids)]
 
-        tgt_subtokens_str = '[unused0] ' + ' [unused2] '.join(
+        tgt_subtokens_str = '[unused7] ' + ' [unused2] '.join(
             [' '.join(self.tokenizer.tokenize(' '.join(tt), use_bert_basic_tokenizer=use_bert_basic_tokenizer)) for tt in tgt]) + ' [unused1]'
         tgt_subtoken = tgt_subtokens_str.split()[:self.args.max_tgt_ntokens]
         if ((not is_test) and len(tgt_subtoken) < self.args.min_tgt_ntokens):
@@ -281,14 +281,15 @@ def format_to_bert(args):
         a_lst = []
         for json_f in glob.glob(pjoin(args.raw_path, '*' + corpus_type + '.*.json')):
             real_name = json_f.split('/')[-1]
-            a_lst.append((corpus_type, json_f, args, pjoin(args.save_path, real_name.replace('json', 'bert.pt'))))
-        print(a_lst)
-        pool = Pool(args.n_cpus)
-        for d in pool.imap(_format_to_bert, a_lst):
-            pass
-
-        pool.close()
-        pool.join()
+            _format_to_bert((corpus_type, json_f, args, pjoin(args.save_path, real_name.replace('json', 'bert.pt'))))
+            # a_lst.append((corpus_type, json_f, args, pjoin(args.save_path, real_name.replace('json', 'bert.pt'))))
+        # print(a_lst)
+        # pool = Pool(args.n_cpus)
+        # for d in pool.imap(_format_to_bert, a_lst):
+        #     pass
+        #
+        # pool.close()
+        # pool.join()
 
 
 def _format_to_bert(params):
