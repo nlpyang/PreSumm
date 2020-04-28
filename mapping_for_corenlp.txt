@@ -1,1 +1,2 @@
-./raw_data_1/temp.raw_src
+./raw_data_covid/small_test_tgt/covid.raw_src
+./raw_data_covid/small_test_tgt/covid.raw_tgt
