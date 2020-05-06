@@ -133,7 +133,7 @@ class Bert(nn.Module):
 
 
 class ExtSummarizer(nn.Module):
-    def __init__(self, args, device, checkpoint):
+    def __init__(self, args, device, checkpoint, max_position_upper_lim=512):
         super(ExtSummarizer, self).__init__()
         self.args = args
         self.device = device
@@ -147,10 +147,12 @@ class ExtSummarizer(nn.Module):
             self.bert.model = BertModel(bert_config)
             self.ext_layer = Classifier(self.bert.model.config.hidden_size)
 
-        if(args.max_pos>512):
+        if(args.max_pos>max_position_upper_lim):
             my_pos_embeddings = nn.Embedding(args.max_pos, self.bert.model.config.hidden_size)
-            my_pos_embeddings.weight.data[:512] = self.bert.model.embeddings.position_embeddings.weight.data
-            my_pos_embeddings.weight.data[512:] = self.bert.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-512,1)
+            my_pos_embeddings.weight.data[:max_position_upper_lim] =\
+                self.bert.model.embeddings.position_embeddings.weight.data
+            my_pos_embeddings.weight.data[max_position_upper_lim:] =\
+                self.bert.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-max_position_upper_lim,1)
             self.bert.model.embeddings.position_embeddings = my_pos_embeddings
 
 
@@ -202,7 +204,7 @@ class AbsSummarizer(nn.Module):
         self.vocab_size = self.bert.model.config.vocab_size
         tgt_embeddings = nn.Embedding(self.vocab_size, self.bert.model.config.hidden_size, padding_idx=0)
         if (self.args.share_emb):
-            tgt_embeddings.weight = copy.deepcopy(self.bert.model.embeddings.word_embeddings.weight)
+            tgt_embeddings = self.bert.model.embeddings.word_embeddings
 
         self.decoder = TransformerDecoder(
             self.args.dec_layers,

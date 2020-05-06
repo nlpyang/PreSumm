@@ -344,8 +344,6 @@ def format_to_lines(args):
             test_files.append(f)
         elif (real_name in corpus_mapping['train']):
             train_files.append(f)
-        # else:
-        #     train_files.append(f)
 
     corpora = {'train': train_files, 'valid': valid_files, 'test': test_files}
     for corpus_type in ['train', 'valid', 'test']:
