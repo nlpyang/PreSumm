@@ -2,6 +2,7 @@ import bisect
 import gc
 import glob
 import random
+import os.path
 
 import torch
 from tqdm import tqdm
@@ -295,7 +296,11 @@ def load_text(args, source_fp, target_fp, device):
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
     sep_vid = tokenizer.vocab['[SEP]']
     cls_vid = tokenizer.vocab['[CLS]']
-    n_lines = len(open(source_fp).read().split('\n'))
+
+    if os.path.isfile(source_fp):
+        n_lines = len(open(source_fp).read().split('\n'))
+    else:
+        n_lines = 1
 
     def _process_src(raw):
         raw = raw.strip().lower()
@@ -324,7 +329,7 @@ def load_text(args, source_fp, target_fp, device):
 
         return src, mask_src, segments_ids, clss, mask_cls
 
-    if(target_fp==''):
+    if(target_fp=='' and args.input_type == 'doc'):
         with open(source_fp) as source:
             for x in tqdm(source, total=n_lines):
                 src, mask_src, segments_ids, clss, mask_cls = _process_src(x)
@@ -342,6 +347,22 @@ def load_text(args, source_fp, target_fp, device):
 
                 batch.batch_size=1
                 yield batch
+    elif(args.input_type == 'str'):
+        src, mask_src, segments_ids, clss, mask_cls = _process_src(source_fp)
+        segs = torch.tensor(segments_ids)[None, :].to(device)
+        batch = Batch()
+        batch.src  = src
+        batch.tgt  = None
+        batch.mask_src  = mask_src
+        batch.mask_tgt  = None
+        batch.segs  = segs
+        batch.src_str  =  [[sent.replace('[SEP]','').strip() for sent in source_fp.split('[CLS]')]]
+        batch.tgt_str  = ['']
+        batch.clss  = clss
+        batch.mask_cls  = mask_cls
+
+        batch.batch_size=1
+        yield batch
     else:
         with open(source_fp) as source, open(target_fp) as target:
             for x, y in tqdm(zip(source, target), total=n_lines):

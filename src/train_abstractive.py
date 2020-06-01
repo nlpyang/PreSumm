@@ -307,8 +307,6 @@ def train_abs_single(args, device_id):
     trainer.train(train_iter_fct, args.train_steps)
 
 
-
-
 def test_text_abs(args):
 
     logger.info('Loading checkpoint from %s' % args.test_from)

@@ -5,6 +5,7 @@
 from __future__ import division
 
 import argparse
+import torch
 import os
 from others.logging import init_logger
 from train_abstractive import validate_abs, train_abs, baseline, test_abs, test_text_abs
@@ -30,16 +31,16 @@ if __name__ == '__main__':
     parser.add_argument("-task", default='ext', type=str, choices=['ext', 'abs'])
     parser.add_argument("-encoder", default='bert', type=str, choices=['bert', 'baseline'])
     parser.add_argument("-mode", default='train', type=str, choices=['train', 'validate', 'test', 'test_text'])
-    parser.add_argument("-bert_data_path", default='../bert_data_new/cnndm')
+    parser.add_argument("-text_src", default='../raw_data/temp.raw_src')
+    parser.add_argument("-input_type",default='doc',type=str, choices=['doc','str'])
+    parser.add_argument("-text_tgt", default='')
+    parser.add_argument("-bert_data_path", default='../bert_data/cnndm')
     parser.add_argument("-model_path", default='../models/')
     parser.add_argument("-result_path", default='../results/cnndm')
     parser.add_argument("-temp_dir", default='../temp')
-    parser.add_argument("-text_src", default='')
-    parser.add_argument("-text_tgt", default='')
 
     parser.add_argument("-batch_size", default=140, type=int)
     parser.add_argument("-test_batch_size", default=200, type=int)
-    parser.add_argument("-max_ndocs_in_batch", default=6, type=int)
 
     parser.add_argument("-max_pos", default=512, type=int)
     parser.add_argument("-use_interval", type=str2bool, nargs='?',const=True,default=True)
@@ -120,6 +121,8 @@ if __name__ == '__main__':
     device = "cpu" if args.visible_gpus == '-1' else "cuda"
     device_id = 0 if device == "cuda" else -1
 
+    torch.cuda.empty_cache()
+
     if (args.task == 'abs'):
         if (args.mode == 'train'):
             train_abs(args, device_id)
@@ -137,6 +140,11 @@ if __name__ == '__main__':
                 step = 0
             test_abs(args, device_id, cp, step)
         elif (args.mode == 'test_text'):
+            cp = args.test_from
+            try:
+                step = int(cp.split('.')[-2].split('_')[-1])
+            except:
+                step = 0
             test_text_abs(args)
 
     elif (args.task == 'ext'):
@@ -152,4 +160,9 @@ if __name__ == '__main__':
                 step = 0
             test_ext(args, device_id, cp, step)
         elif (args.mode == 'test_text'):
+            cp = args.test_from
+            try:
+                step = int(cp.split('.')[-2].split('_')[-1])
+            except:
+                step = 0
             test_text_ext(args)
