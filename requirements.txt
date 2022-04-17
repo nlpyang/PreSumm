@@ -4,3 +4,4 @@ pyrouge==0.1.3
 pytorch-transformers==1.2.0
 tensorboardX==1.9
 torch==1.1.0
+# torch==1.1.0 pytorch_transformers tensorboardX multiprocess pyrouge
