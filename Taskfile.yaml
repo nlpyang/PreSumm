@@ -1,0 +1,48 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+  dev_venv: PreSumm-env
+  dev_dimg: presumm-dimg-dev
+
+tasks:
+  default:
+    cmds:
+      - task -l
+    silent: true
+
+  build-docker-dev:
+    desc: builds development docker
+    cmds:
+    - docker build -t {{.dev_dimg}} .
+
+  resolve-deps-blobs:
+    desc: fetch preprocessed data
+    dir: bert_data
+    cmds:
+    - wget -O bert_data_xsum_final.zip https://doc-0c-5k-docs.googleusercontent.com/docs/securesc/hssnm9ldf9bkeoqf7im84p4glf9g3mgu/3s76afkl7idnmbhh7c3d99rhuikrg9eg/1650225075000/02403291851892694101/15106390828028366018/1BWBN1coTWGBqrWoOfRc5dhojPHhatbYs?e=download&ax=ACxEAsaf17dH9RB_Vbza2GO4Ck-qJ5h26V-St_uRmMkemv8d2y8I3Wfif7KhlsgKCMc1kOKi9eo9JxIYUlnlsqUSVcOHv4PQ4TvdiOzUAeda7dia6WNWtN-Y9aYpI3q7ARTSWfaB9OspLk3A2BnnAt3cq8Lk7_ieD8my1fCjGYPZPCICrUTHqcknT-v-FV3okbhnLLJDdszLBZd6Lj0Elk1Q1jk4nc_Xl7jRwyUgD9ycFh5kJbptRyuc9gy_5dWhpZTTZqpCy8RuchCBtLjkxG3d8du4l89bIlRsBBRuYijUznblfe_qbjZjC0VsyS0NnW1ieOnhmTQOSigDOEXn2V6SHijbPKI20TKOXG2q4fpsgxD99Y031wxpgciUFsQ8cc9R6eQjE0KYbBY06uDvt6beOOoByaqcP6akGycoPuWeDfoAyrHjig5uBRZVrkwSkV3HQanKlm76An_xehFFN_lgc2nCEy6iZmyoBWm4merOkCuPuxV3Uxy2B9Na4vUXjUmxPXbfdOCoEyTOxbJLahfcftMHGiguJ_d_2lILDtun4-SBJNtasKPCVz0EFmEEf3ugtn9g74Lt1vfOWDXPVoprx-ir1GyGRwxkwFPDbeZptccyBLadEB-mGy7x54FBt0LFgaM_ohlKAhIZsNaxbzydaBLVc7sL23jhjm3pqAIG-ENNvbrKbeNvKtAkRyYWyd0CxflJU3dDd8vN_A&authuser=0&nonce=h6jigrmul94vq&user=15106390828028366018&hash=uk33b539pu1ud61p0hrpsce0glkqp0d3
+
+  # --- Setup Virtual Environment ---
+
+  setup-dev-venv:
+    desc: setup conda developer venv (not obligatory)
+    cmds:
+    - conda create -c conda-forge -y  -n {{.dev_venv}} 'python=3.6' pip
+    status:
+    - conda run -n {{.dev_venv}} pwd
+
+  update-dev-venv:
+    desc: setup conda developer venv (not obligatory)
+    deps:
+    - task: setup-dev-venv
+    cmds:
+    - conda run -n {{.dev_venv}} pip install -r requirements.txt
+
+  show-dev-venv-activate:
+    desc: _
+    cmds:
+      - echo conda activate {{.dev_venv}}
+
+  # --- /Setup Virtual Environment ---
