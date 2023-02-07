@@ -437,3 +437,39 @@ def _format_xsum_to_lines(params):
             tgt.append(sent.split())
         return {'src': source, 'tgt': tgt}
     return None
+
+
+# Step 4 : format to lines for custom data (not CNN/DM)
+# Code from PreSumm issue #98
+def custom_format_to_lines(args):
+    corpus_mapping = {}
+    train_files = []
+    for f in glob.glob(pjoin(args.raw_path, '*.json')):
+        train_files.append(f)
+    
+    corpora = {'train': train_files}
+    for corpus_type in ['train']:
+        a_lst = [(f, args) for f in corpora[corpus_type]]
+        pool = Pool(args.n_cpus)
+        dataset = []
+        p_ct = 0
+        for d in pool.imap_unordered(_format_to_lines, a_lst):
+            dataset.append(d)
+            if (len(dataset) > args.shard_size):
+                pt_file = "{:s}.{:s}.{:d}.json".format(args.save_path, corpus_type, p_ct)
+                with open(pt_file, 'w') as save:
+                    # save.write('\n'.join(dataset))
+                    save.write(json.dumps(dataset))
+                    p_ct += 1
+                    dataset = []
+
+        pool.close()
+        pool.join()
+        if (len(dataset) > 0):
+            pt_file = "{:s}.{:s}.{:d}.json".format(args.save_path, corpus_type, p_ct)
+            with open(pt_file, 'w') as save:
+                # save.write('\n'.join(dataset))
+                save.write(json.dumps(dataset))
+                p_ct += 1
+                dataset = []
+

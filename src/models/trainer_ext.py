@@ -213,7 +213,7 @@ class Trainer(object):
                 ngram_set.add(tuple(text[i:i + n]))
             return ngram_set
 
-        def _block_tri(c, p):
+        def _block_tri(c, p): # Trigram Blocking Function
             tri_c = _get_ngrams(3, c.split())
             for s in p:
                 tri_s = _get_ngrams(3, s.split())
@@ -258,6 +258,8 @@ class Trainer(object):
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1)
                         # selected_ids = np.sort(selected_ids,1)
+
+                        # Sentence Selection Phase
                         for i, idx in enumerate(selected_ids):
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
@@ -266,8 +268,8 @@ class Trainer(object):
                                 if (j >= len(batch.src_str[i])):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
-                                if (self.args.block_trigram):
-                                    if (not _block_tri(candidate, _pred)):
+                                if (self.args.block_trigram): #Check block_trigram argument
+                                    if (not _block_tri(candidate, _pred)): #Trigram overlapping occur
                                         _pred.append(candidate)
                                 else:
                                     _pred.append(candidate)
