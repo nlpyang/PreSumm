@@ -39,6 +39,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-batch_size", default=140, type=int)
     parser.add_argument("-test_batch_size", default=200, type=int)
+    parser.add_argument("-max_ndocs_in_batch", default=6, type=int)
 
     parser.add_argument("-max_pos", default=512, type=int)
     parser.add_argument("-use_interval", type=str2bool, nargs='?',const=True,default=True)
@@ -136,12 +137,7 @@ if __name__ == '__main__':
                 step = 0
             test_abs(args, device_id, cp, step)
         elif (args.mode == 'test_text'):
-            cp = args.test_from
-            try:
-                step = int(cp.split('.')[-2].split('_')[-1])
-            except:
-                step = 0
-                test_text_abs(args, device_id, cp, step)
+            test_text_abs(args)
 
     elif (args.task == 'ext'):
         if (args.mode == 'train'):
@@ -156,9 +152,4 @@ if __name__ == '__main__':
                 step = 0
             test_ext(args, device_id, cp, step)
         elif (args.mode == 'test_text'):
-            cp = args.test_from
-            try:
-                step = int(cp.split('.')[-2].split('_')[-1])
-            except:
-                step = 0
-                test_text_ext(args)
+            test_text_ext(args)

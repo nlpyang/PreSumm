@@ -244,6 +244,9 @@ def train_single_ext(args, device_id):
     trainer = build_trainer(args, device_id, model, optim)
     trainer.train(train_iter_fct, args.train_steps)
 
+
+
+
 def test_text_ext(args):
     logger.info('Loading checkpoint from %s' % args.test_from)
     checkpoint = torch.load(args.test_from, map_location=lambda storage, loc: storage)
@@ -262,4 +265,5 @@ def test_text_ext(args):
 
     trainer = build_trainer(args, device_id, model, None)
     trainer.test(test_iter, -1)
-    
+
+
