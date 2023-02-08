@@ -438,14 +438,15 @@ def _format_xsum_to_lines(params):
 
 
 # Step 4 : format to lines for custom data (not CNN/DM)
+# Code from PreSumm issue #98 and #43
 def custom_format_to_lines(args):
     # Split data train/test/validate using ratio instead mapping
     train_files, valid_files, test_files = [], [], []
     cur = 0
-    valid_test_ratio = 0.1 #train/test/val: 8:1:1 
+    valid_test_ratio = 0.01 
     all_size = len(glob.glob(pjoin(args.raw_path, '*.json')))
     for f in glob.glob(pjoin(args.raw_path, '*.json')):
-        #real_name = f.split('/')[-1].split('.')[0]
+        real_name = f.split('/')[-1].split('.')[0] #not use?
         if (cur < valid_test_ratio*all_size):
             valid_files.append(f)
         elif (cur < valid_test_ratio*2*all_size):
@@ -453,6 +454,13 @@ def custom_format_to_lines(args):
         else:
             train_files.append(f)
         cur += 1
+
+    # corpus_mapping = {}
+    # train_files = []
+    # for f in glob.glob(pjoin(args.raw_path, '*.json')):
+    #     train_files.append(f)
+
+    #corpora = {'train': train_files}
 
     corpora = {'train': train_files, 'valid': valid_files, 'test': test_files}
     for corpus_type in ['train', 'valid', 'test']:
@@ -479,3 +487,64 @@ def custom_format_to_lines(args):
                 save.write(json.dumps(dataset))
                 p_ct += 1
                 dataset = []
+
+
+# Step 5 : format to bert for custom data (not CNN/DM)
+# Code from PreSumm issue #98
+# def custom_format_to_bert(args):
+#     if (args.dataset != ''):
+#         datasets = [args.dataset]
+#         print('dataset')
+#     else:
+#         datasets = ['train']
+#     for corpus_type in datasets:
+#         a_lst = []
+#         print('.' + corpus_type + '.0.json')
+#         for json_f in glob.glob(pjoin(args.raw_path, '.' + corpus_type + '.0.json')):
+#             print(json_f)
+#             real_name = json_f.split('/')[-1]
+#             print(real_name)
+#             a_lst.append((corpus_type, json_f, args, pjoin(args.save_path, real_name.replace('json', 'bert.pt'))))
+#         print(a_lst)
+#         pool = Pool(args.n_cpus)
+#         for d in pool.imap(_format_to_bert, a_lst):
+#             pass
+
+#         pool.close()
+#         pool.join()
+
+# Same function as above
+# def _format_to_bert(params):
+#     corpus_type, json_file, args, save_file = params
+#     is_test = corpus_type == 'test'
+#     if (os.path.exists(save_file)):
+#         logger.info('Ignore %s' % save_file)
+#         return
+
+#     bert = BertData(args)
+
+#     logger.info('Processing %s' % json_file)
+#     jobs = json.load(open(json_file))
+#     datasets = []
+#     for d in jobs:
+#         source, tgt = d['src'], d['tgt']
+
+#         sent_labels = greedy_selection(source[:args.max_src_nsents], tgt, 3)
+#         if (args.lower):
+#             source = [' '.join(s).lower().split() for s in source]
+#             tgt = [' '.join(s).lower().split() for s in tgt]
+#         b_data = bert.preprocess(source, tgt, sent_labels, use_bert_basic_tokenizer=args.use_bert_basic_tokenizer, is_test=is_test)
+#         # b_data = bert.preprocess(source, tgt, sent_labels, use_bert_basic_tokenizer=args.use_bert_basic_tokenizer)
+
+#         if (b_data is None):
+#             continue
+#         src_subtoken_idxs, sent_labels, tgt_subtoken_idxs, segments_ids, cls_ids, src_txt, tgt_txt = b_data
+#         b_data_dict = {"src": src_subtoken_idxs, "tgt": tgt_subtoken_idxs,
+#                        "src_sent_labels": sent_labels, "segs": segments_ids, 'clss': cls_ids,
+#                        'src_txt': src_txt, "tgt_txt": tgt_txt}
+#         datasets.append(b_data_dict)
+#     logger.info('Processed instances %d' % len(datasets))
+#     logger.info('Saving to %s' % save_file)
+#     torch.save(datasets, save_file)
+#     datasets = []
+#     gc.collect()
