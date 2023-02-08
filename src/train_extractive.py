@@ -262,3 +262,4 @@ def test_text_ext(args):
 
     trainer = build_trainer(args, device_id, model, None)
     trainer.test(test_iter, -1)
+    

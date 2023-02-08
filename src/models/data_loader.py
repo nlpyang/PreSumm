@@ -31,13 +31,13 @@ class Batch(object):
             tgt = torch.tensor(self._pad(pre_tgt, 0))
 
             segs = torch.tensor(self._pad(pre_segs, 0))
-            mask_src = 1 - (src == 0)
-            mask_tgt = 1 - (tgt == 0)
+            mask_src = 1 - (src == 0).float()
+            mask_tgt = 1 - (tgt == 0).float()
 
 
             clss = torch.tensor(self._pad(pre_clss, -1))
             src_sent_labels = torch.tensor(self._pad(pre_src_sent_labels, 0))
-            mask_cls = 1 - (clss == -1)
+            mask_cls = 1 - (clss == -1).float()
             clss[clss == -1] = 0
             setattr(self, 'clss', clss.to(device))
             setattr(self, 'mask_cls', mask_cls.to(device))
@@ -288,6 +288,7 @@ class DataIterator(object):
             return
 
 
+
 def load_text(args, source_fp, target_fp, device):
     from others.tokenization import BertTokenizer
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
@@ -360,94 +361,3 @@ def load_text(args, source_fp, target_fp, device):
                 batch.mask_cls  = mask_cls
                 batch.batch_size=1
                 yield batch
-
-# class TextDataloader(object):
-#     def __init__(self, args, datasets, batch_size,
-#                  device, shuffle, is_test):
-#         self.args = args
-#         self.batch_size = batch_size
-#         self.device = device
-
-#     def data(self):
-#         if self.shuffle:
-#             random.shuffle(self.dataset)
-#         xs = self.dataset
-#         return xs
-
-#     def preprocess(self, ex, is_test):
-#         src = ex['src']
-#         tgt = ex['tgt'][:self.args.max_tgt_len][:-1] + [2]
-#         src_sent_labels = ex['src_sent_labels']
-#         segs = ex['segs']
-#         if (not self.args.use_interval):
-#             segs = [0] * len(segs)
-#         clss = ex['clss']
-#         src_txt = ex['src_txt']
-#         tgt_txt = ex['tgt_txt']
-
-#         end_id = [src[-1]]
-#         src = src[:-1][:self.args.max_pos - 1] + end_id
-#         segs = segs[:self.args.max_pos]
-#         max_sent_id = bisect.bisect_left(clss, self.args.max_pos)
-#         src_sent_labels = src_sent_labels[:max_sent_id]
-#         clss = clss[:max_sent_id]
-#         # src_txt = src_txt[:max_sent_id]
-
-#         if (is_test):
-#             return src, tgt, segs, clss, src_sent_labels, src_txt, tgt_txt
-#         else:
-#             return src, tgt, segs, clss, src_sent_labels
-
-#     def batch_buffer(self, data, batch_size):
-#         minibatch, size_so_far = [], 0
-#         for ex in data:
-#             if (len(ex['src']) == 0):
-#                 continue
-#             ex = self.preprocess(ex, self.is_test)
-#             if (ex is None):
-#                 continue
-#             minibatch.append(ex)
-#             size_so_far = simple_batch_size_fn(ex, len(minibatch))
-#             if size_so_far == batch_size:
-#                 yield minibatch
-#                 minibatch, size_so_far = [], 0
-#             elif size_so_far > batch_size:
-#                 yield minibatch[:-1]
-#                 minibatch, size_so_far = minibatch[-1:], simple_batch_size_fn(ex, 1)
-#         if minibatch:
-#             yield minibatch
-
-#     def create_batches(self):
-#         """ Create batches """
-#         data = self.data()
-#         for buffer in self.batch_buffer(data, self.batch_size * 300):
-#             if (self.args.task == 'abs'):
-#                 p_batch = sorted(buffer, key=lambda x: len(x[2]))
-#                 p_batch = sorted(p_batch, key=lambda x: len(x[1]))
-#             else:
-#                 p_batch = sorted(buffer, key=lambda x: len(x[2]))
-#                 p_batch = batch(p_batch, self.batch_size)
-
-#             p_batch = batch(p_batch, self.batch_size)
-
-#             p_batch = list(p_batch)
-#             if (self.shuffle):
-#                 random.shuffle(p_batch)
-#             for b in p_batch:
-#                 if (len(b) == 0):
-#                     continue
-#                 yield b
-
-#     def __iter__(self):
-#         while True:
-#             self.batches = self.create_batches()
-#             for idx, minibatch in enumerate(self.batches):
-#                 # fast-forward if loaded from state
-#                 if self._iterations_this_epoch > idx:
-#                     continue
-#                 self.iterations += 1
-#                 self._iterations_this_epoch += 1
-#                 batch = Batch(minibatch, self.device, self.is_test)
-
-#                 yield batch
-#             return

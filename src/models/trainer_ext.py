@@ -244,15 +244,23 @@ class Trainer(object):
                         if (cal_lead):
                             selected_ids = [list(range(batch.clss.size(1)))] * batch.batch_size
                         elif (cal_oracle):
+                            labels = batch.src_sent_labels
                             selected_ids = [[j for j in range(batch.clss.size(1)) if labels[i][j] == 1] for i in
                                             range(batch.batch_size)]
                         else:
                             sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
 
-                            loss = self.loss(sent_scores, labels.float())
-                            loss = (loss * mask.float()).sum()
-                            batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
-                            stats.update(batch_stats)
+                            if (hasattr(batch, 'src_sent_labels')):
+                                labels = batch.src_sent_labels
+                                loss = self.loss(sent_scores, labels.float())
+                                loss = (loss * mask.float()).sum()
+                                batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
+                                stats.update(batch_stats)
+
+                            # loss = self.loss(sent_scores, labels.float())
+                            # loss = (loss * mask.float()).sum()
+                            # batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
+                            # stats.update(batch_stats)
 
                             sent_scores = sent_scores + mask.float()
                             sent_scores = sent_scores.cpu().data.numpy()
