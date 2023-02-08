@@ -161,4 +161,4 @@ if __name__ == '__main__':
                 step = int(cp.split('.')[-2].split('_')[-1])
             except:
                 step = 0
-                test_text_ext(args, device_id, cp, step)
+                test_text_ext(args)
