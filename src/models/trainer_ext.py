@@ -232,12 +232,15 @@ class Trainer(object):
                 with torch.no_grad():
                     for batch in test_iter:
                         src = batch.src
+                        labels = batch.src_sent_labels
                         segs = batch.segs
                         clss = batch.clss
                         mask = batch.mask_src
                         mask_cls = batch.mask_cls
+
                         gold = []
                         pred = []
+
                         if (cal_lead):
                             selected_ids = [list(range(batch.clss.size(1)))] * batch.batch_size
                         elif (cal_oracle):
@@ -247,16 +250,14 @@ class Trainer(object):
                         else:
                             sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
 
+                            loss = self.loss(sent_scores, labels.float())
+                            loss = (loss * mask.float()).sum()
+                            batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
+                            stats.update(batch_stats)
+
                             sent_scores = sent_scores + mask.float()
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1)
-
-                            if (hasattr(batch, 'src_sent_labels')):
-                                labels = batch.src_sent_labels
-                                loss = self.loss(sent_scores, labels.float())
-                                loss = (loss * mask.float()).sum()
-                                batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
-                                stats.update(batch_stats)
 
                         for i, idx in enumerate(selected_ids):
                             _pred = []
@@ -266,8 +267,8 @@ class Trainer(object):
                                 if (j >= len(batch.src_str[i])):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
-                                if (self.args.block_trigram): #Check block_trigram argument
-                                    if (not _block_tri(candidate, _pred)): #Trigram overlapping occur
+                                if (self.args.block_trigram):               #Check block_trigram argument
+                                    if (not _block_tri(candidate, _pred)):  #Trigram overlapping occur
                                         _pred.append(candidate)
                                 else:
                                     _pred.append(candidate)
