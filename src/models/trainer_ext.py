@@ -213,7 +213,7 @@ class Trainer(object):
                 ngram_set.add(tuple(text[i:i + n]))
             return ngram_set
 
-        def _block_tri(c, p): # Trigram Blocking Function
+        def _block_tri(c, p): # Trigram Blocking Function, if occur return TRUE
             tri_c = _get_ngrams(3, c.split())
             for s in p:
                 tri_s = _get_ngrams(3, s.split())
@@ -268,7 +268,7 @@ class Trainer(object):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
                                 if (self.args.block_trigram):               #Check block_trigram argument
-                                    if (not _block_tri(candidate, _pred)):  #Trigram overlapping occur
+                                    if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add to candidate
                                         _pred.append(candidate)
                                 else:
                                     _pred.append(candidate)
