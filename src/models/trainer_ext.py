@@ -268,12 +268,12 @@ class Trainer(object):
                             #logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
                             #logger.info("Numbers in selected_ids are: {}".format(' '.join(map(str, selected_ids))))
 
-                        for i, idx in enumerate(selected_ids):
+                        for i, idx in enumerate(selected_ids): #loop each document
 
-                            #logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
-                            logger.info("%s", type(selected_ids[i]))
-                            logger.info("len(batch.src_str[i]): %d" % len(batch.src_str[i]))
-                            logger.info("Numbers in selected_ids[i] are: {}".format(' '.join(map(str, selected_ids[i]))))
+                            # #logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
+                            # logger.info("%s", type(selected_ids[i]))
+                            # logger.info("len(batch.src_str[i]): %d" % len(batch.src_str[i]))
+                            # logger.info("Numbers in selected_ids[i] are: {}".format(' '.join(map(str, selected_ids[i]))))
 
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
@@ -281,10 +281,7 @@ class Trainer(object):
                             for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence with n number (n=no. of sentences)
                                 if (j >= len(batch.src_str[i])):
                                     continue
-                                candidate = batch.src_str[i][j].strip()
-
-                                #logger.info('j: %d' %j)
-                                #logger.info('candidate: %s' % candidate)
+                                candidate = batch.src_str[i][j].strip() #candidate sentence
 
                                 if (self.args.block_trigram):               #Check block_trigram argument
                                     if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to pred
@@ -301,6 +298,8 @@ class Trainer(object):
 
                             pred.append(_pred)
                             gold.append(batch.tgt_str[i])
+
+                            logger.info('pred: %s' %pred)
 
                         for i in range(len(gold)):
                             save_gold.write(gold[i].strip() + '\n')
