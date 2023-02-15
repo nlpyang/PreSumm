@@ -257,15 +257,21 @@ class Trainer(object):
 
                             sent_scores = sent_scores + mask.float()
                             sent_scores = sent_scores.cpu().data.numpy()
-                            selected_ids = np.argsort(-sent_scores, 1)
+                            selected_ids = np.argsort(-sent_scores, 1) #sort sent_scores descending
 
-                            #logger.info('loss: %f' % loss)
-                            logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
-                            logger.info("Numbers in selected_ids are: {}".format(' '.join(map(str, selected_ids))))
+                            #sent_scores is array of score in each sentence
+                            #ex. [1.5006347 1.566371  1.2368327 1.4981233 1.0806098 1.3983564 1.323128 1.2054876 1.1012326]
+
+                            #selected_ids is array of index of sentence that sort descending
+                            #ex. [1 0 3 5 6 2 7 8 4]
+                            
+                            #logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
+                            #logger.info("Numbers in selected_ids are: {}".format(' '.join(map(str, selected_ids))))
 
                         for i, idx in enumerate(selected_ids):
 
-                            #logger.info('i: %d' %i )
+                            logger.info('i: %d' %i)
+                            logger.info('idx: %d' %idx)
                             
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
