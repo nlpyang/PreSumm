@@ -260,7 +260,7 @@ class Trainer(object):
                             selected_ids = np.argsort(-sent_scores, 1)
 
                             #logger.info('loss: %f' % loss)
-                            #logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
+                            logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
                             logger.info("Numbers in selected_ids are: {}".format(' '.join(map(str, selected_ids))))
 
                         for i, idx in enumerate(selected_ids):
