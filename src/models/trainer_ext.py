@@ -261,8 +261,8 @@ class Trainer(object):
 
                             #logger
                             logger.info('loss: %f' % loss)
-                            logger.info('sent_scores: %f' % sent_scores)
-                            logger.info('selected_ids: %f' % selected_ids)
+                            #logger.info('sent_scores: %f' % sent_scores) #TypeError: only size-1 arrays can be converted to Python scalars
+                            #logger.info('selected_ids: %f' % selected_ids)
 
                         for i, idx in enumerate(selected_ids):
                             _pred = []
