@@ -264,7 +264,7 @@ class Trainer(object):
                             #logger.info('sent_scores: %f' % sent_scores) 
                             #logger.info('selected_ids: %f' % selected_ids)
 
-                            logger.info('sent_scores: %f' % sent_scores.astype(float)) 
+                            logger.info('sent_scores: %d' % sent_scores.astype(int)) 
 
                         for i, idx in enumerate(selected_ids):
 
