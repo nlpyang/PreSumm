@@ -264,6 +264,8 @@ class Trainer(object):
                             #logger.info('sent_scores: %f' % sent_scores) 
                             #logger.info('selected_ids: %f' % selected_ids)
 
+                            logger.info('sent_scores: %f' % sent_scores.astype(float)) 
+
                         for i, idx in enumerate(selected_ids):
 
                             #logger.info('i: %d' %i )
@@ -275,9 +277,8 @@ class Trainer(object):
                                 if (j >= len(batch.src_str[i])):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
-                                
-                                logger.info('i: %d' %i)
-                                logger.info('j: %d' %j)
+
+                                #logger.info('j: %d' %j)
                                 #logger.info('candidate: %s' % candidate)
 
                                 if (self.args.block_trigram):               #Check block_trigram argument
