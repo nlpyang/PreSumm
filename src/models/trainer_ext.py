@@ -271,9 +271,9 @@ class Trainer(object):
                         for i, idx in enumerate(selected_ids):
 
                             #logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
-                            logger.info("len(batch.src_str[i]): %d" % len(batch.src_str[i]))
-                            logger.info("selected_ids[i] %d" % selected_ids[i])
                             logger.info("%s", type(selected_ids[i]))
+                            logger.info("len(batch.src_str[i]): %d" % len(batch.src_str[i]))
+                            logger.info("Numbers in selected_ids[i] are: {}".format(' '.join(map(str, selected_ids[i]))))
 
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
