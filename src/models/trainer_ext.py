@@ -139,6 +139,10 @@ class Trainer(object):
 
                     true_batchs.append(batch)
                     normalization += batch.batch_size
+
+                    logger.info('true_batchs: %s' %true_batchs)
+                    logger.info('normalization: %s' %normalization)
+
                     accum += 1
                     if accum == self.grad_accum_count:
                         reduce_counter += 1
@@ -261,7 +265,6 @@ class Trainer(object):
 
                             #sent_scores is array of score in each sentence
                             #ex. [1.5006347 1.566371  1.2368327 1.4981233 1.0806098 1.3983564 1.323128 1.2054876 1.1012326]
-
                             #selected_ids is array of index of sentence that sort descending
                             #ex. [1 0 3 5 6 2 7 8 4]
                             
@@ -289,7 +292,7 @@ class Trainer(object):
                                 else:
                                     _pred.append(candidate)
 
-                                if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3):
+                                if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
                                     break
 
                             _pred = '<q>'.join(_pred)
@@ -298,8 +301,6 @@ class Trainer(object):
 
                             pred.append(_pred)
                             gold.append(batch.tgt_str[i])
-
-                            logger.info('pred: %s' %pred)
 
                         for i in range(len(gold)):
                             save_gold.write(gold[i].strip() + '\n')
