@@ -266,7 +266,7 @@ class Trainer(object):
 
                         for i, idx in enumerate(selected_ids):
 
-                            logger.info('i: %d' %i )
+                            #logger.info('i: %d' %i )
                             
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
@@ -276,7 +276,8 @@ class Trainer(object):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
                                 
-                                logger.info('j: %f' %j)
+                                logger.info('i: %d' %i)
+                                logger.info('j: %d' %j)
                                 #logger.info('candidate: %s' % candidate)
 
                                 if (self.args.block_trigram):               #Check block_trigram argument
