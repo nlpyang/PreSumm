@@ -259,12 +259,15 @@ class Trainer(object):
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1)
 
-                            #logger
                             logger.info('loss: %f' % loss)
-                            #logger.info('sent_scores: %f' % sent_scores) #TypeError: only size-1 arrays can be converted to Python scalars
-                            logger.info('selected_ids: %f' % selected_ids)
+                            #TypeError: only size-1 arrays can be converted to Python scalars
+                            #logger.info('sent_scores: %f' % sent_scores) 
+                            #logger.info('selected_ids: %f' % selected_ids)
 
                         for i, idx in enumerate(selected_ids):
+
+                            #logger.info('selected_ids: %f' % selected_ids)
+
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
                                 continue
@@ -273,7 +276,6 @@ class Trainer(object):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
                                 
-                                #logger
                                 #logger.info('candidate: %s' % candidate)
 
                                 if (self.args.block_trigram):               #Check block_trigram argument
