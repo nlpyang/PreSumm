@@ -134,14 +134,11 @@ class Trainer(object):
         while step <= train_steps:
 
             reduce_counter = 0
-            for i, batch in enumerate(train_iter):
+            for i, batch in enumerate(train_iter): #loop for training data
                 if self.n_gpu == 0 or (i % self.n_gpu == self.gpu_rank):
 
                     true_batchs.append(batch)
                     normalization += batch.batch_size
-
-                    logger.info('true_batchs: %s' %true_batchs)
-                    logger.info('normalization: %s' %normalization)
 
                     accum += 1
                     if accum == self.grad_accum_count:
@@ -335,6 +332,10 @@ class Trainer(object):
             loss = (loss * mask.float()).sum()
             (loss / loss.numel()).backward()
             # loss.div(float(normalization)).backward()
+
+            #logger.info('sent_scores: %f' %sent_scores)
+            logger.info('loss: %f' %loss)
+            logger.info('average loss: %f' %(loss / loss.numel()))
 
             batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization)
 
