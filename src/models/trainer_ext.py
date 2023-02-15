@@ -257,7 +257,7 @@ class Trainer(object):
 
                             sent_scores = sent_scores + mask.float()
                             sent_scores = sent_scores.cpu().data.numpy()
-                            selected_ids = np.argsort(-sent_scores, 1) #sort sent_scores descending
+                            selected_ids = np.argsort(-sent_scores, 1) #sort sent_scores descending -> candidate sentences
 
                             #sent_scores is array of score in each sentence
                             #ex. [1.5006347 1.566371  1.2368327 1.4981233 1.0806098 1.3983564 1.323128 1.2054876 1.1012326]
@@ -272,11 +272,13 @@ class Trainer(object):
 
                             #logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
                             logger.info("len(batch.src_str[i]): %d" % len(batch.src_str[i]))
-                            
+                            logger.info("selected_ids[i] %d" % selected_ids[i])
+                            logger.info("%s", type(selected_ids[i]))
+
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
                                 continue
-                            for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence
+                            for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence with n number (n=no. of sentences)
                                 if (j >= len(batch.src_str[i])):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
