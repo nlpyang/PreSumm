@@ -259,6 +259,11 @@ class Trainer(object):
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1)
 
+                            #logger
+                            logger.info('loss: %f' % loss)
+                            logger.info('sent_scores: %f' % sent_scores)
+                            logger.info('selected_ids: %f' % selected_ids)
+
                         for i, idx in enumerate(selected_ids):
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
@@ -267,8 +272,12 @@ class Trainer(object):
                                 if (j >= len(batch.src_str[i])):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
+                                
+                                #logger
+                                logger.info('candidate: %s' % candidate)
+
                                 if (self.args.block_trigram):               #Check block_trigram argument
-                                    if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add to candidate
+                                    if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to pred
                                         _pred.append(candidate)
                                 else:
                                     _pred.append(candidate)
