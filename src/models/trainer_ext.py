@@ -270,10 +270,9 @@ class Trainer(object):
 
                         for i, idx in enumerate(selected_ids):
 
-                            logger.info('i: %d' %i)
+                            #logger.info('i: %d' %i)
                             #logger.info('idx: %d' %idx)
-                            logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
-
+                            #logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
                             
                             _pred = []
                             if (len(batch.src_str[i]) == 0):
@@ -283,8 +282,8 @@ class Trainer(object):
                                     continue
                                 candidate = batch.src_str[i][j].strip()
 
-                                #logger.info('j: %d' %j)
-                                #logger.info('candidate: %s' % candidate)
+                                logger.info('j: %d' %j)
+                                logger.info('candidate: %s' % candidate)
 
                                 if (self.args.block_trigram):               #Check block_trigram argument
                                     if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to pred
