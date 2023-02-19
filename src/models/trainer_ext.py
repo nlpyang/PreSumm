@@ -3,6 +3,7 @@ import os
 import numpy as np
 import torch
 from tensorboardX import SummaryWriter
+from sentence_transformers import SentenceTransformer, util
 
 import distributed
 from models.reporter_ext import ReportMgr, Statistics
@@ -226,6 +227,9 @@ class Trainer(object):
             self.model.eval()
         stats = Statistics()
 
+        # Set sentence embedding model
+        semtenceModel = SentenceTransformer('all-MiniLM-L6-v2')
+
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
         with open(can_path, 'w') as save_pred:
@@ -277,12 +281,16 @@ class Trainer(object):
                             # logger.info("Numbers in selected_ids[i] are: {}".format(' '.join(map(str, selected_ids[i]))))
 
                             _pred = []
+                            allSentences = []
                             if (len(batch.src_str[i]) == 0):
                                 continue
                             for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
                                 if (j >= len(batch.src_str[i])):
                                     continue
-                                candidate = batch.src_str[i][j].strip() #candidate sentence
+                                candidate = batch.src_str[i][j].strip()     #candidate sentence
+
+                                logger.info("Candidate type: %s" %type(candidate))
+
 
                                 if (self.args.block_trigram):               #Check block_trigram argument
                                     if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to pred
@@ -336,7 +344,7 @@ class Trainer(object):
 
             # logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
             # logger.info("Numbers in mask are: {}".format(' '.join(map(str, mask))))
-            logger.info('loss: %f' %loss)
+            # logger.info('loss: %f' %loss)
 
             batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization)
 
