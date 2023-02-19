@@ -228,7 +228,7 @@ class Trainer(object):
         stats = Statistics()
 
         # Set sentence embedding model
-        semtenceModel = SentenceTransformer('all-MiniLM-L6-v2')
+        sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
 
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
@@ -289,8 +289,8 @@ class Trainer(object):
                                     continue
                                 candidate = batch.src_str[i][j].strip()     #candidate sentence
 
-                                logger.info("Candidate type: %s" %type(candidate))
-
+                                allSentences.append(candidate)
+                                #logger.info("Candidate type: %s" %type(candidate))
 
                                 if (self.args.block_trigram):               #Check block_trigram argument
                                     if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to pred
@@ -300,6 +300,10 @@ class Trainer(object):
 
                                 if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
                                     break
+
+                            logger.info(allSentences)
+                            sentence_embeddings = sentenceModel.encode(allSentences)
+                            logger.info(len(sentence_embeddings))
 
                             _pred = '<q>'.join(_pred)
                             if (self.args.recall_eval):
