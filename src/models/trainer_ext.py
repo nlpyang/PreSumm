@@ -229,6 +229,16 @@ class Trainer(object):
 
         # Set sentence embedding model
         sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+        emb1 = sentenceModel.encode("This is a red cat with a hat.")
+        emb2 = sentenceModel.encode("Have you seen my red cat?")
+        for embedding in zip(emb1):
+           logger.info(len(embedding))
+           logger.info(type(emb1))
+
+        # compute cosine similarity
+        cosi = torch.nn.CosineSimilarity(dim=0)
+        output = cosi(emb1, emb2)
+        logger.info(output)
 
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
@@ -274,23 +284,23 @@ class Trainer(object):
 
 
                         # Test sentence embedding
-                        for i, idx in enumerate(selected_ids): #loop each document
-                            allSentences = []
+                        # for i, idx in enumerate(selected_ids): #loop each document
+                        #     allSentences = []
 
-                            if (len(batch.src_str[i]) == 0):
-                                continue
-                            for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
-                                if (j >= len(batch.src_str[i])):
-                                    continue
-                                candidate = batch.src_str[i][j].strip()     #candidate sentence
+                        #     if (len(batch.src_str[i]) == 0):
+                        #         continue
+                        #     for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                        #         if (j >= len(batch.src_str[i])):
+                        #             continue
+                        #         candidate = batch.src_str[i][j].strip()     #candidate sentence
 
-                                allSentences.append(candidate)
+                        #         allSentences.append(candidate)
                             
-                            logger.info(len(allSentences))
-                            sentence_embeddings = sentenceModel.encode(allSentences)
-                            for sentence, embedding in zip(allSentences, sentence_embeddings):
-                                logger.info(sentence)
-                                logger.info(embedding)
+                        #     logger.info(len(allSentences))
+                        #     sentence_embeddings = sentenceModel.encode(allSentences)
+                        #     for sentence, embedding in zip(allSentences, sentence_embeddings):
+                        #         logger.info(sentence)
+                        #         logger.info(embedding)
 
 
                         for i, idx in enumerate(selected_ids): #loop each document
