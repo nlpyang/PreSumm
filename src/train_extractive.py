@@ -233,8 +233,14 @@ def train_single_ext(args, device_id):
         checkpoint = None
 
     def train_iter_fct():
-        return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
-                                      shuffle=True, is_test=False)
+
+        # if is_test=False document'text is not included in data_loader
+        if args.mmr_select:
+            return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
+                                        shuffle=True, is_test=True)
+        else:
+            return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
+                                        shuffle=True, is_test=False)
 
     model = ExtSummarizer(args, device, checkpoint)
     optim = model_builder.build_optim(args, model, checkpoint)

@@ -285,6 +285,7 @@ class Trainer(object):
                                 candidate = batch.src_str[i][j].strip()     #candidate sentence
                                 allSentences.append(candidate)
                             
+                            logger.info(f'batch.src_str: {batch.src_str}')
                             #logger.info(len(allSentences))
                             sentence_embeddings = sentenceModel.encode(allSentences,show_progress_bar = False)
                             sentence_embeddings = torch.FloatTensor(sentence_embeddings)
@@ -349,11 +350,12 @@ class Trainer(object):
                                report_stats):
         if self.grad_accum_count > 1:
             self.model.zero_grad()
-
-        for batch in true_batchs:
+        
+        for batch in true_batchs:   # number of this loop != train_steps
             if self.grad_accum_count == 1:
                 self.model.zero_grad()
 
+            #logger.info(f'batch: {batch.src_str}')
             src = batch.src
             labels = batch.src_sent_labels
             segs = batch.segs
@@ -363,6 +365,9 @@ class Trainer(object):
 
             sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
 
+            #logger.info(f'sent_scores: {sent_scores.shape}')
+            #logger.info(f'batch.src_str: {batch.src_str}')
+            
             loss = self.loss(sent_scores, labels.float())
             loss = (loss * mask.float()).sum()
             (loss / loss.numel()).backward()
@@ -370,7 +375,6 @@ class Trainer(object):
 
             # logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
             # logger.info("Numbers in mask are: {}".format(' '.join(map(str, mask))))
-            # logger.info('loss: %f' %loss)
 
             batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization)
 
