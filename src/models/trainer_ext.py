@@ -231,14 +231,22 @@ class Trainer(object):
         sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
         emb1 = sentenceModel.encode("This is a red cat with a hat.")
         emb2 = sentenceModel.encode("Have you seen my red cat?")
-        for embedding in zip(emb1):
-           logger.info(len(embedding))
-           logger.info(type(emb1))
+        
+        logger.info("Type emb1: %d" %type(emb1))
+        logger.info("Length emb1: %d" %len(emb1))
+        logger.info("Shape emb1: %s" %emb1.shape)
+        logger.info("Type emb2: %d" %type(emb2))
+        logger.info("Length emb2: %d" %len(emb2))
+        logger.info("Shape emb2: %s" %emb2.shape)
 
+        #emb1_tensor = torch.FloatTensor(emb1)
+        #emb2_tensor = torch.FloatTensor(emb2)
+        #logger.info("emb1_tensor type: %s" %type(emb1_tensor))
+        
         # compute cosine similarity
-        cosi = torch.nn.CosineSimilarity(dim=0)
-        output = cosi(emb1, emb2)
-        logger.info(output)
+        #cosi = torch.nn.CosineSimilarity(dim=0)
+        #output = cosi(emb1_tensor, emb2_tensor)
+        #logger.info(output)
 
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
