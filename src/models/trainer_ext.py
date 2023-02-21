@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from tensorboardX import SummaryWriter
 from sentence_transformers import SentenceTransformer, util
-
+import torch.nn.functional as F
 import distributed
 from models.reporter_ext import ReportMgr, Statistics
 from others.logging import logger
@@ -245,7 +245,6 @@ class Trainer(object):
 
                         gold = []
                         pred = []
-
                         if (cal_lead):
                             selected_ids = [list(range(batch.clss.size(1)))] * batch.batch_size
                         elif (cal_oracle):
@@ -263,7 +262,6 @@ class Trainer(object):
                             sent_scores = sent_scores + mask.float()
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1) #sort sent_scores descending -> candidate sentences
-
                             #sent_scores is array of score in each sentence
                             #ex. [1.5006347 1.566371  1.2368327 1.4981233 1.0806098 1.3983564 1.323128 1.2054876 1.1012326]
                             #selected_ids is array of index of sentence that sort descending
@@ -272,10 +270,12 @@ class Trainer(object):
                             #logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
                             #logger.info("Numbers in selected_ids are: {}".format(' '.join(map(str, selected_ids))))
 
-
+                        
+                        
                         # Test sentence embedding
-                        for i, idx in enumerate(selected_ids): #loop each document
-                            allSentences = []
+                        if self.args.mmr_select:
+                            for i, idx in enumerate(selected_ids): #loop each document
+                                allSentences = []
 
                             if (len(batch.src_str[i]) == 0):
                                 continue
@@ -283,40 +283,49 @@ class Trainer(object):
                                 if (j >= len(batch.src_str[i])):
                                     continue
                                 candidate = batch.src_str[i][j].strip()     #candidate sentence
-
                                 allSentences.append(candidate)
                             
-                            logger.info(len(allSentences))
-                            sentence_embeddings = sentenceModel.encode(allSentences)
-                            for sentence, embedding in zip(allSentences, sentence_embeddings):
-                                logger.info(sentence)
-                                logger.info(embedding)
+                            #logger.info(len(allSentences))
+                            sentence_embeddings = sentenceModel.encode(allSentences,show_progress_bar = False)
+                            sentence_embeddings = torch.FloatTensor(sentence_embeddings)
+                            #sentence_embeddings_tensor = torch.stack((torch.FloatTensor(sentence_embeddings)))
+                            summary_representation=[] # vector
+                            summary = []
+                            # allSentences = str, sentence_embeddings = embedding of allSentences 
+                            for sentence, sentence_embedding in zip(allSentences,sentence_embeddings):
+                                summary.append(sentence)
+                                summary_representation.append(sentence_embedding)
+                                s = torch.stack(summary_representation,1).permute(1,0)
+                                logger.info(f'sentence_embeddings: {sentence_embeddings.shape}')
+                                logger.info(f's: {s.shape}')
+                                
+                                logger.info(f'redundancy_score: {F.cosine_similarity(sentence_embeddings,s,1)}')
 
 
-                        for i, idx in enumerate(selected_ids): #loop each document
+                        else:
+                            for i, idx in enumerate(selected_ids): #loop each document
+                                # #logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
+                                # logger.info("%s", type(selected_ids[i]))
+                                # logger.info("len(batch.src_str[i]): %d" % len(batch.src_str[i]))
+                                # logger.info("Numbers in selected_ids[i] are: {}".format(' '.join(map(str, selected_ids[i]))))
 
-                            # #logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
-                            # logger.info("%s", type(selected_ids[i]))
-                            # logger.info("len(batch.src_str[i]): %d" % len(batch.src_str[i]))
-                            # logger.info("Numbers in selected_ids[i] are: {}".format(' '.join(map(str, selected_ids[i]))))
-
-                            _pred = []
-                            
-                            if (len(batch.src_str[i]) == 0):
-                                continue
-                            for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
-                                if (j >= len(batch.src_str[i])):
+                                _pred = []
+                                
+                                if (len(batch.src_str[i]) == 0):
                                     continue
-                                candidate = batch.src_str[i][j].strip()     #candidate sentence
+                                for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                                    if (j >= len(batch.src_str[i])):
+                                        continue
+                                    candidate = batch.src_str[i][j].strip()     #candidate sentence
 
-                                if (self.args.block_trigram):               #Check block_trigram argument
-                                    if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to pred
+                                    if (self.args.block_trigram):               #Check block_trigram argument
+                                        if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to pred
+                                            _pred.append(candidate)
+                                    else:
                                         _pred.append(candidate)
-                                else:
-                                    _pred.append(candidate)
 
-                                if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
-                                    break
+                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
+                                        break
 
                             _pred = '<q>'.join(_pred)
                             if (self.args.recall_eval):

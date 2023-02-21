@@ -1,0 +1,2 @@
+*.pyc
+bert-base-nli-stsb-mean-tokens.pt
