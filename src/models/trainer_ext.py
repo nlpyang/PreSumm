@@ -276,16 +276,19 @@ class Trainer(object):
                         if self.args.mmr_select:
                             for i, idx in enumerate(selected_ids): #loop each document
                                 allSentences = []
-
-                            if (len(batch.src_str[i]) == 0):
-                                continue
-                            for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
-                                if (j >= len(batch.src_str[i])):
+                                if (len(batch.src_str[i]) == 0):
                                     continue
-                                candidate = batch.src_str[i][j].strip()     #candidate sentence
-                                allSentences.append(candidate)
+                                for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                                    if (j >= len(batch.src_str[i])):
+                                        continue
+                                    candidate = batch.src_str[i][j].strip()     #candidate sentence
+                                    allSentences.append(candidate)
+
+                            logger.info(f'len(batch.src_str): {len(batch.src_str[0])}')
+                            logger.info(f'sent_scores: {sent_scores.shape}')
+                            logger.info(f'allSentences: {len(allSentences)})')
                             
-                            logger.info(f'batch.src_str: {batch.src_str}')
+                            #logger.info(f'batch.src_str: {batch.src_str}')
                             #logger.info(len(allSentences))
                             sentence_embeddings = sentenceModel.encode(allSentences,show_progress_bar = False)
                             sentence_embeddings = torch.FloatTensor(sentence_embeddings)
@@ -297,10 +300,10 @@ class Trainer(object):
                                 summary.append(sentence)
                                 summary_representation.append(sentence_embedding)
                                 s = torch.stack(summary_representation,1).permute(1,0)
-                                logger.info(f'sentence_embeddings: {sentence_embeddings.shape}')
-                                logger.info(f's: {s.shape}')
+                                #logger.info(f'sentence_embeddings: {sentence_embeddings.shape}')
+                                #logger.info(f's: {s.shape}')
                                 
-                                logger.info(f'redundancy_score: {F.cosine_similarity(sentence_embeddings,s,1)}')
+                                #logger.info(f'redundancy_score: {F.cosine_similarity(sentence_embeddings,s,1)}')
 
 
                         else:
@@ -346,6 +349,22 @@ class Trainer(object):
 
         return stats
 
+    def _greedy_nommr(self, sent_scores,allSentences,reference):
+        selected = []
+        summary=[]
+        # for i in range(sent_scores.size()[1]):
+        #     print(i)
+        return summary, selected
+
+    def _loss_compute(self, allSentences,sent_scores,reference):
+        reward_batch = []
+        rl_label_batch = torch.zeros(sent_scores.size()[1])
+
+        result,selected = self._greedy_nommr(sent_scores,allSentences,reference)
+    
+
+        return 0
+
     def _gradient_accumulation(self, true_batchs, normalization, total_stats,
                                report_stats):
         if self.grad_accum_count > 1:
@@ -358,20 +377,50 @@ class Trainer(object):
             #logger.info(f'batch: {batch.src_str}')
             src = batch.src
             labels = batch.src_sent_labels
+            
             segs = batch.segs
             clss = batch.clss
             mask = batch.mask_src
             mask_cls = batch.mask_cls
 
             sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
+            sent_scores_np = sent_scores.cpu().data.numpy()
+            selected_ids = np.argsort(-sent_scores_np, 1)
 
-            #logger.info(f'sent_scores: {sent_scores.shape}')
-            #logger.info(f'batch.src_str: {batch.src_str}')
-            
-            loss = self.loss(sent_scores, labels.float())
+            for i, idx in enumerate(selected_ids):
+                logger.info(f'len(batch.src_str[i]): {len(batch.src_str[i])}')
+                logger.info(f'selected_ids[i]: {selected_ids[i]}')
+                #logger.info(f'selected_ids[i][:len(batch.src_str[i])]: {selected_ids[i][:len(batch.src_str[i])]}')
+                
+                allSentences = []
+                if (len(batch.src_str[i]) == 0): continue
+                for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                    if (j >= len(batch.src_str[i])): continue
+                    candidate = batch.src_str[i][j].strip() 
+                    allSentences.append(candidate)
+                
+
+
+            # logger.info(f'batch.src_str: {len(batch.src_str[i])}')
+            # logger.info(f'sent_scores: {sent_scores_np.shape}')
+            # logger.info(f'allSentences: {len(allSentences)}')
+
+            # logger.info(f'labels: {labels}')
+            # logger.info(f'labels: {batch.tgt_str}')
+
+            self._loss_compute(allSentences,sent_scores,batch.tgt_str)
+            # logger.info(f'sent_scores: {sent_scores}') # [[0.3237, 0.5695, 0.4251, 0.4078, 0.1652, 0.3770, 0.5206, 0.5282, 0.6333, 0.6573, 0.6338, 0.6922, 0.7432, 0.6689, 0.5860, 0.4160, 0.3242, 0.4360
+            # logger.info(f'mask: {mask}') # tensor([[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,1., 1., 1.]
+            # logger.info(f'batch.src_str: {batch.src_str}') # whole document
+            # logger.info(f'batch.src_str: {batch.tgt_str}') # whole summary
+            loss = self.loss(sent_scores, labels.float()) 
+            # loss_tmp = loss.sum()
+            # logger.info(f'loss.sum(): {loss.sum()}')
+
+
+
             loss = (loss * mask.float()).sum()
             (loss / loss.numel()).backward()
-            # loss.div(float(normalization)).backward()
 
             # logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
             # logger.info("Numbers in mask are: {}".format(' '.join(map(str, mask))))
