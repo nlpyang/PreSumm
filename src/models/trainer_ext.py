@@ -3,7 +3,7 @@ import os
 import numpy as np
 import torch
 from tensorboardX import SummaryWriter
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
 
 import distributed
 from models.reporter_ext import ReportMgr, Statistics
@@ -282,51 +282,64 @@ class Trainer(object):
                             #logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
                             #logger.info("Numbers in selected_ids are: {}".format(' '.join(map(str, selected_ids))))
 
-
-                        # Test sentence embedding
-                        # for i, idx in enumerate(selected_ids): #loop each document
-                        #     allSentences = []
-
-                        #     if (len(batch.src_str[i]) == 0):
-                        #         continue
-                        #     for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
-                        #         if (j >= len(batch.src_str[i])):
-                        #             continue
-                        #         candidate = batch.src_str[i][j].strip()     #candidate sentence
-
-                        #         allSentences.append(candidate)
-                            
-                        #     logger.info(len(allSentences))
-                        #     sentence_embeddings = sentenceModel.encode(allSentences)
-                        #     for sentence, embedding in zip(allSentences, sentence_embeddings):
-                        #         logger.info(sentence)
-                        #         logger.info(embedding)
-
-
                         for i, idx in enumerate(selected_ids): #loop each document
 
-                            # #logger.info("Numbers in idx are: {}".format(' '.join(map(str, idx))))
-                            # logger.info("%s", type(selected_ids[i]))
-                            # logger.info("len(batch.src_str[i]): %d" % len(batch.src_str[i]))
-                            # logger.info("Numbers in selected_ids[i] are: {}".format(' '.join(map(str, selected_ids[i]))))
-
-                            _pred = []
-                            
                             if (len(batch.src_str[i]) == 0):
                                 continue
-                            for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
-                                if (j >= len(batch.src_str[i])):
-                                    continue
-                                candidate = batch.src_str[i][j].strip()     #candidate sentence
+                            
+                            if(self.args.mmr_select):
+                                logger.info("To MMR-select")
 
-                                if (self.args.block_trigram):               #Check block_trigram argument
-                                    if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to pred
+                                #Append all sentence
+                                allSentences = []
+                                for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                                    if (j >= len(batch.src_str[i])):
+                                        continue
+                                    candidate = batch.src_str[i][j].strip() 
+                                    allSentences.append(candidate)
+
+                                #Encoding allSentences
+                                allEmb = sentenceModel.encode(allSentences)
+
+                                #Convert list to tensor
+                                allEmb = torch.FloatTensor(allEmb)
+                                
+                                #Sentence Selection with MMR-select
+                                mmr_selected_ids = []   #as selected_ids
+                                _pred = []              #as summary
+                                
+                                # while len(mmr_selected_ids)<=len(batch.src_str[i]):
+                                    
+
+                                #     break
+
+                                # for sentence, embedding in zip(allSentences, allEmb):
+                                    
+                                #     break
+
+
+                            elif(self.args.block_trigram):
+                                _pred = []
+                                for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                                    if (j >= len(batch.src_str[i])):
+                                        continue
+                                    candidate = batch.src_str[i][j].strip()     #candidate sentence
+
+                                    if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to _pred
                                         _pred.append(candidate)
-                                else:
-                                    _pred.append(candidate)
 
-                                if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
-                                    break
+                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
+                                        break
+                            else:
+                                _pred = []
+                                for j in selected_ids[i][:len(batch.src_str[i])]:
+                                    if (j >= len(batch.src_str[i])):
+                                        continue
+                                    candidate = batch.src_str[i][j].strip()
+                                    _pred.append(candidate) #append candidate to _pred
+
+                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
+                                        break
 
                             _pred = '<q>'.join(_pred)
                             if (self.args.recall_eval):
