@@ -230,16 +230,6 @@ class Trainer(object):
         # Set sentence embedding model
         sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
 
-        #TRY SENTENCE EMBEDDING AND FIND COSINE SIMILARITY
-        emb1 = sentenceModel.encode(['This is a red cat with a hat.'])
-        emb2 = sentenceModel.encode(['Have you seen my red cat?'])
-        emb1_tensor = torch.FloatTensor(emb1)
-        emb2_tensor = torch.FloatTensor(emb2)
-        cosi = torch.nn.CosineSimilarity(dim=1)
-        output = cosi(emb1_tensor, emb2_tensor)
-        logger.info(output)
-
-
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
         with open(can_path, 'w') as save_pred:
@@ -288,36 +278,41 @@ class Trainer(object):
                                 continue
                             
                             if(self.args.mmr_select):
-                                logger.info("To MMR-select")
+                                #Append all sentences (not sorted)
+                                all_sentences = []
+                                for j in range(0, len(batch.src_str[i])):
+                                    sentence = batch.src_str[i][j].strip()
+                                    all_sentences.append(sentence)
+                                    logger.info(j)
 
-                                #Append all sentence
-                                allSentences = []
-                                for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
-                                    if (j >= len(batch.src_str[i])):
-                                        continue
-                                    candidate = batch.src_str[i][j].strip() 
-                                    allSentences.append(candidate)
+                                logger.info(len(all_sentences))
+                                logger.info(all_sentences)
 
-                                #Encoding allSentences
-                                allEmb = sentenceModel.encode(allSentences)
-
-                                #Convert list to tensor
-                                allEmb = torch.FloatTensor(allEmb)
+                                # #Encoding and convert to tensor of allSentences
+                                # all_emb = sentenceModel.encode(all_sentences)
+                                # all_emb = torch.FloatTensor(all_emb)
                                 
-                                #Sentence Selection with MMR-select
-                                mmr_selected_ids = []   #as selected_ids
-                                _pred = []              #as summary
-                                
-                                # while len(mmr_selected_ids)<=len(batch.src_str[i]):
+                                # #Sentence Selection with MMR-select
+                                # _pred = [] 
+                                # mmr_selected_ids = []                            
+                                # summary_representation = []
+                                # sent_count = 0
+                      
+                                # while len(mmr_selected_ids)<=len(all_sentences[i]):  #loop for argmax of mmr-score
+                                #     j = idx[0]
+                                #     _pred.append()
                                     
 
-                                #     break
 
-                                # for sentence, embedding in zip(allSentences, allEmb):
                                     
-                                #     break
 
 
+
+                                #     sent_count += 1
+                                #     if sent_count > 3:
+                                #         break
+
+                                
                             elif(self.args.block_trigram):
                                 _pred = []
                                 for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
