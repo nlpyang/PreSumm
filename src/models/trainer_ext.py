@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from sentence_transformers import SentenceTransformer
 
@@ -288,22 +289,34 @@ class Trainer(object):
                                 #Encoding and convert to tensor of allSentences
                                 all_emb = sentenceModel.encode(all_sentences)
                                 all_emb = torch.FloatTensor(all_emb)
-                                logger.info("all_emb size: %s" %all_emb.size())
+                                all_emb_unsq = all_emb.unsqueeze(2)
                                 
                                 #Sentence Selection with MMR-select
+                                scores = sent_scores[i]
                                 _pred = [] 
                                 mmr_selected_ids = []                            
                                 summ_emb = []
                                 sent_count = 0
+                                lamb = 0.6
+
+                                logger.info(scores)
+                                logger.info(sent_scores[i])
                       
                                 while len(mmr_selected_ids)<=len(all_sentences[i]):  #loop for argmax of mmr-score
                                     j = idx[0]                      #index of best sentence
                                     _pred.append(all_sentences[j])  #append sentence to summary
                                     mmr_selected_ids.append(j)      #append sentence idx
 
-                                    summ_emb.append(all_emb[j])
+                                    summ_emb.append(all_emb[j])     #append amb current summary
                                     s = torch.stack(summ_emb, 1).unsqueeze(0)
-                                    logger.info("s size: %s" %s.size())
+
+                                    redund_score = torch.max(F.cosine_similarity(all_emb_unsq,s,1),1)[0]
+                                    logger.info(redund_score.size())
+
+                                    scores[j] = -100                
+                                    final_scores = lamb*scores - ((1-lamb)*redund_score)
+                                    logger.info(final_scores)
+
 
 
 
