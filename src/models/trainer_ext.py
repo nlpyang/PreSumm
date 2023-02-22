@@ -228,7 +228,8 @@ class Trainer(object):
         stats = Statistics()
 
         # Set sentence embedding model
-        sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+        if(self.args.mmr_select):
+            sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
 
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
@@ -283,34 +284,33 @@ class Trainer(object):
                                 for j in range(0, len(batch.src_str[i])):
                                     sentence = batch.src_str[i][j].strip()
                                     all_sentences.append(sentence)
-                                    logger.info(j)
 
-                                logger.info(len(all_sentences))
-                                logger.info(all_sentences)
-
-                                # #Encoding and convert to tensor of allSentences
-                                # all_emb = sentenceModel.encode(all_sentences)
-                                # all_emb = torch.FloatTensor(all_emb)
+                                #Encoding and convert to tensor of allSentences
+                                all_emb = sentenceModel.encode(all_sentences)
+                                all_emb = torch.FloatTensor(all_emb)
+                                logger.info("all_emb size: %s" %all_emb.size())
                                 
-                                # #Sentence Selection with MMR-select
-                                # _pred = [] 
-                                # mmr_selected_ids = []                            
-                                # summary_representation = []
-                                # sent_count = 0
+                                #Sentence Selection with MMR-select
+                                _pred = [] 
+                                mmr_selected_ids = []                            
+                                summ_emb = []
+                                sent_count = 0
                       
-                                # while len(mmr_selected_ids)<=len(all_sentences[i]):  #loop for argmax of mmr-score
-                                #     j = idx[0]
-                                #     _pred.append()
-                                    
+                                while len(mmr_selected_ids)<=len(all_sentences[i]):  #loop for argmax of mmr-score
+                                    j = idx[0]                      #index of best sentence
+                                    _pred.append(all_sentences[j])  #append sentence to summary
+                                    mmr_selected_ids.append(j)      #append sentence idx
+
+                                    summ_emb.append(all_emb[j])
+                                    s = torch.stack(summ_emb, 1).unsqueeze(0)
+                                    logger.info("s size: %s" %s.size())
 
 
-                                    
 
+                                    sent_count += 1
+                                    if sent_count>=3:
+                                        break
 
-
-                                #     sent_count += 1
-                                #     if sent_count > 3:
-                                #         break
 
                                 
                             elif(self.args.block_trigram):
