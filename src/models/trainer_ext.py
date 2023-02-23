@@ -276,6 +276,11 @@ class Trainer(object):
 
                         for i, idx in enumerate(selected_ids): #loop each document
 
+                            logger.info("i: %d" %i)
+                            logger.info("len idx: %d" %len(idx))
+                            logger.info("len sentence_scores: %d" %len(sent_scores[i]))
+                            logger.info("len batch.src_str[%d]: %d" %i %len(batch.src_str[i]))
+
                             if (len(batch.src_str[i]) == 0):
                                 continue
                             
