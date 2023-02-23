@@ -276,15 +276,22 @@ class Trainer(object):
 
                         for i, idx in enumerate(selected_ids): #loop each document
 
+                            logger.info("i: %d" %i)
+                            logger.info("len idx: %d" %len(idx))
+                            logger.info("len sentence_scores: %d" %len(sent_scores[i]))
+                            logger.info("len batch.src_str[%d]: %d" %i %len(batch.src_str[i]))
+
                             if (len(batch.src_str[i]) == 0):
                                 continue
                             
-                            if(self.args.mmr_select):
+                            if(self.args.mmr_select):                                
                                 #Append all sentences (not sorted)
                                 all_sentences = []
-                                for j in range(0, len(batch.src_str[i])):
+                                for j in range(0, len(idx)):
                                     sentence = batch.src_str[i][j].strip()
                                     all_sentences.append(sentence)
+
+                                logger.info("len all_sentences: %d" %len(all_sentences))
 
                                 #Encoding and convert to tensor of allSentences
                                 all_emb = sentenceModel.encode(all_sentences)
@@ -293,14 +300,11 @@ class Trainer(object):
                                 
                                 #Sentence Selection with MMR-select
                                 scores = sent_scores[i]
+                                scores = torch.from_numpy(scores)
                                 _pred = [] 
                                 mmr_selected_ids = []                            
                                 summ_emb = []
-                                sent_count = 0
                                 lamb = 0.6
-
-                                logger.info(scores)
-                                logger.info(sent_scores[i])
                       
                                 while len(mmr_selected_ids)<=len(all_sentences[i]):  #loop for argmax of mmr-score
                                     j = idx[0]                      #index of best sentence
@@ -311,19 +315,17 @@ class Trainer(object):
                                     s = torch.stack(summ_emb, 1).unsqueeze(0)
 
                                     redund_score = torch.max(F.cosine_similarity(all_emb_unsq,s,1),1)[0]
+                                                                   
+                                    scores[j] = -100        
+
+                                    logger.info(scores.size())
                                     logger.info(redund_score.size())
+                                    final_scores = lamb*scores - ((1-lamb)*redund_score)    #calculate final score every sentences
+                                    
+                                    idx = np.argsort(-final_scores, 1)                      #sort agin by final scores
 
-                                    scores[j] = -100                
-                                    final_scores = lamb*scores - ((1-lamb)*redund_score)
-                                    logger.info(final_scores)
-
-
-
-
-                                    sent_count += 1
-                                    if sent_count>=3:
+                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
                                         break
-
 
                                 
                             elif(self.args.block_trigram):
