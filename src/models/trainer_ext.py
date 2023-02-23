@@ -266,20 +266,7 @@ class Trainer(object):
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1) #sort sent_scores descending -> candidate sentences
 
-                            #sent_scores is array of score in each sentence
-                            #ex. [1.5006347 1.566371  1.2368327 1.4981233 1.0806098 1.3983564 1.323128 1.2054876 1.1012326]
-                            #selected_ids is array of index of sentence that sort descending
-                            #ex. [1 0 3 5 6 2 7 8 4]
-                            
-                            #logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
-                            #logger.info("Numbers in selected_ids are: {}".format(' '.join(map(str, selected_ids))))
-
                         for i, idx in enumerate(selected_ids): #loop each document
-
-                            logger.info("i: %d" %i)
-                            logger.info("len idx: %d" %len(idx))
-                            logger.info("len sentence_scores: %d" %len(sent_scores[i]))
-                            logger.info("len batch.src_str[%d]: %d" %i %len(batch.src_str[i]))
 
                             if (len(batch.src_str[i]) == 0):
                                 continue
@@ -291,37 +278,49 @@ class Trainer(object):
                                     sentence = batch.src_str[i][j].strip()
                                     all_sentences.append(sentence)
 
-                                logger.info("len all_sentences: %d" %len(all_sentences))
-
                                 #Encoding and convert to tensor of allSentences
                                 all_emb = sentenceModel.encode(all_sentences, show_progress_bar = False)
                                 all_emb = torch.FloatTensor(all_emb)
-                                all_emb_unsq = all_emb.unsqueeze(2)
+                                all_emb_unsq = all_emb.unsqueeze(2) #torch.size([no.sent, 768, 1]) 
+                                logger.info(all_emb.size())
+                                logger.info(all_emb_unsq.size())
                                 
-                                #Sentence Selection with MMR-select
-                                scores = sent_scores[i]
-                                scores = torch.from_numpy(scores)
+                                #Sentence Selection
+                                scores = sent_scores[i]             #array
+                                #scores = torch.from_numpy(scores)  #torch
                                 _pred = [] 
                                 mmr_selected_ids = []                            
                                 summ_emb = []
                                 lamb = 0.6
+
+                                # logger.info("Inital Scores and idx:")
+                                # logger.info(scores) 
+                                # logger.info(idx)
                       
                                 while len(mmr_selected_ids)<=len(all_sentences[i]):  #loop for argmax of mmr-score
-                                    j = idx[0]                      #index of best sentence
+                                    j = idx[0]                      #index of most sentence score 
                                     _pred.append(all_sentences[j])  #append sentence to summary
                                     mmr_selected_ids.append(j)      #append sentence idx
 
                                     summ_emb.append(all_emb[j])     #append emb current summary
                                     s = torch.stack(summ_emb, 1).unsqueeze(0)
+                                    logger.info(s.size())
 
-                                    redund_score = torch.max(F.cosine_similarity(all_emb_unsq,s,1),1)[0]
-                                                                   
+                                    redund_score = torch.max(F.cosine_similarity(all_emb_unsq,s,1),1)[0]    #torch.tensor 
+                                    redund_score = redund_score.numpy()                                     #array                                                     
                                     scores[j] = -100        
 
-                                    final_scores = lamb*scores - ((1-lamb)*redund_score)    #calculate final score every sentences
-                                    
-                                    logger.info(type(final_scores))
-                                    #idx = np.argsort(-final_scores, 1)                      #sort agin by final scores
+                                    # logger.info("Score Update:")
+                                    # logger.info(scores)
+
+                                    final_scores = lamb*scores - ((1-lamb)*redund_score)    #array
+                                    #final_scores = final_scores.numpy()
+                                    # logger.info("Final Scores:")
+                                    # logger.info(final_scores)
+
+                                    idx = np.argsort(-final_scores)                         #sort agin by final scores (want array)
+                                    # logger.info("New idx: ")
+                                    # logger.info(idx)
 
                                     if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
                                         break

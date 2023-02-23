@@ -113,7 +113,7 @@ def tile(x, count, dim=0):
     return x
 
 def rouge_results_to_str(results_dict):
-    return ">> ROUGE-F(1/2/3/l): {:.2f}/{:.2f}/{:.2f}\nROUGE-R(1/2/3/l): {:.2f}/{:.2f}/{:.2f}\n".format(
+    return ">> ROUGE-F(1/2/l): {:.2f}/{:.2f}/{:.2f}\nROUGE-R(1/2/l): {:.2f}/{:.2f}/{:.2f}\n".format(
         results_dict["rouge_1_f_score"] * 100,
         results_dict["rouge_2_f_score"] * 100,
         # results_dict["rouge_3_f_score"] * 100,
