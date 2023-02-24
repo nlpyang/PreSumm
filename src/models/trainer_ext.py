@@ -266,7 +266,25 @@ class Trainer(object):
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1) #sort sent_scores descending -> candidate sentences
 
+                        logger.info("NEW BATCH")
+                        #logger.info("batch.src_str %d" %batch.src_str)
+                        logger.info("selected_ids.size: %d" %selected_ids.size)
+
                         for i, idx in enumerate(selected_ids): #loop each document
+
+                            logger.info("NEW DOCUMENT")
+                            logger.info("len(idx): %d" %len(idx))
+                            logger.info("len(batch.src_str[i]): %d" %len(batch.src_str[i]))
+
+                            # if (len(batch.src_str[i]) < len(idx)):
+                            #   logger.info("len(idx): %d" %len(idx))
+                            #   logger.info("len(batch.src_str[i]): %d" %len(batch.src_str[i]))
+                            # if i==1:
+                            #   logger.info("i: 1")
+
+                            # if (len(batch.src_str[i]) > 32) or (len(idx) > 32):
+                            #     logger.info("len(idx): %d" %len(idx))
+                            #     logger.info("len(batch.src_str[i]): %d" %len(batch.src_str[i]))
 
                             if (len(batch.src_str[i]) == 0):
                                 continue
@@ -275,6 +293,8 @@ class Trainer(object):
                                 #Append all sentences (not sorted)
                                 all_sentences = []
                                 for j in range(0, len(idx)):
+                                    # if (j >= len(batch.src_str[i])):
+                                    #     continue
                                     sentence = batch.src_str[i][j].strip()
                                     all_sentences.append(sentence)
 
@@ -282,61 +302,44 @@ class Trainer(object):
                                 all_emb = sentenceModel.encode(all_sentences, show_progress_bar = False)
                                 all_emb = torch.FloatTensor(all_emb)
                                 all_emb_unsq = all_emb.unsqueeze(2) #torch.size([no.sent, 768, 1]) 
-                                logger.info(all_emb.size())
-                                logger.info(all_emb_unsq.size())
                                 
                                 #Sentence Selection
+                                lamb = self.args.lamb
                                 scores = sent_scores[i]             #array
-                                #scores = torch.from_numpy(scores)  #torch
                                 _pred = [] 
                                 mmr_selected_ids = []                            
-                                summ_emb = []
-                                lamb = 0.6
-
-                                # logger.info("Inital Scores and idx:")
-                                # logger.info(scores) 
-                                # logger.info(idx)
+                                summ_emb = [] 
                       
                                 while len(mmr_selected_ids)<=len(all_sentences[i]):  #loop for argmax of mmr-score
                                     j = idx[0]                      #index of most sentence score 
                                     _pred.append(all_sentences[j])  #append sentence to summary
                                     mmr_selected_ids.append(j)      #append sentence idx
 
-                                    summ_emb.append(all_emb[j])     #append emb current summary
-                                    s = torch.stack(summ_emb, 1).unsqueeze(0)
-                                    logger.info(s.size())
+                                    summ_emb.append(all_emb[j])                 #append emb current summary
+                                    s = torch.stack(summ_emb, 1).unsqueeze(0)   #stack from array to tensor
 
                                     redund_score = torch.max(F.cosine_similarity(all_emb_unsq,s,1),1)[0]    #torch.tensor 
-                                    redund_score = redund_score.numpy()                                     #array                                                     
-                                    scores[j] = -100        
+                                    redund_score = redund_score.numpy()                                     #array   
+                                                                                     
+                                    scores[j] = -100    #assign score to very low for sent that's in summary
 
-                                    # logger.info("Score Update:")
-                                    # logger.info(scores)
+                                    final_scores = lamb*scores - ((1-lamb)*redund_score)    #cal mmr-score (array)
+                                    idx = np.argsort(-final_scores)                         #sort again by final scores (array)
 
-                                    final_scores = lamb*scores - ((1-lamb)*redund_score)    #array
-                                    #final_scores = final_scores.numpy()
-                                    # logger.info("Final Scores:")
-                                    # logger.info(final_scores)
-
-                                    idx = np.argsort(-final_scores)                         #sort agin by final scores (want array)
-                                    # logger.info("New idx: ")
-                                    # logger.info(idx)
-
-                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
+                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3):
                                         break
-
                                 
                             elif(self.args.block_trigram):
                                 _pred = []
-                                for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                                for j in selected_ids[i][:len(batch.src_str[i])]:
                                     if (j >= len(batch.src_str[i])):
                                         continue
-                                    candidate = batch.src_str[i][j].strip()     #candidate sentence
+                                    candidate = batch.src_str[i][j].strip() 
 
                                     if (not _block_tri(candidate, _pred)):  #If trigram overlapping is not occur, add candidate to _pred
                                         _pred.append(candidate)
 
-                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
+                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3):
                                         break
                             else:
                                 _pred = []
@@ -344,9 +347,9 @@ class Trainer(object):
                                     if (j >= len(batch.src_str[i])):
                                         continue
                                     candidate = batch.src_str[i][j].strip()
-                                    _pred.append(candidate) #append candidate to _pred
+                                    _pred.append(candidate)
 
-                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): #check select top 3
+                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3): 
                                         break
 
                             _pred = '<q>'.join(_pred)
