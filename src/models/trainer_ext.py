@@ -266,25 +266,7 @@ class Trainer(object):
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1) #sort sent_scores descending -> candidate sentences
 
-                        logger.info("NEW BATCH")
-                        #logger.info("batch.src_str %d" %batch.src_str)
-                        logger.info("selected_ids.size: %d" %selected_ids.size)
-
                         for i, idx in enumerate(selected_ids): #loop each document
-
-                            logger.info("NEW DOCUMENT")
-                            logger.info("len(idx): %d" %len(idx))
-                            logger.info("len(batch.src_str[i]): %d" %len(batch.src_str[i]))
-
-                            # if (len(batch.src_str[i]) < len(idx)):
-                            #   logger.info("len(idx): %d" %len(idx))
-                            #   logger.info("len(batch.src_str[i]): %d" %len(batch.src_str[i]))
-                            # if i==1:
-                            #   logger.info("i: 1")
-
-                            # if (len(batch.src_str[i]) > 32) or (len(idx) > 32):
-                            #     logger.info("len(idx): %d" %len(idx))
-                            #     logger.info("len(batch.src_str[i]): %d" %len(batch.src_str[i]))
 
                             if (len(batch.src_str[i]) == 0):
                                 continue
@@ -293,8 +275,8 @@ class Trainer(object):
                                 #Append all sentences (not sorted)
                                 all_sentences = []
                                 for j in range(0, len(idx)):
-                                    # if (j >= len(batch.src_str[i])):
-                                    #     continue
+                                    if (j >= len(batch.src_str[i])):
+                                        continue
                                     sentence = batch.src_str[i][j].strip()
                                     all_sentences.append(sentence)
 
@@ -305,12 +287,12 @@ class Trainer(object):
                                 
                                 #Sentence Selection
                                 lamb = self.args.lamb
-                                scores = sent_scores[i]             #array
+                                scores = sent_scores[i]
                                 _pred = [] 
                                 mmr_selected_ids = []                            
                                 summ_emb = [] 
                       
-                                while len(mmr_selected_ids)<=len(all_sentences[i]):  #loop for argmax of mmr-score
+                                while len(mmr_selected_ids) <= len(all_sentences[i]):  #loop for argmax of mmr-score
                                     j = idx[0]                      #index of most sentence score 
                                     _pred.append(all_sentences[j])  #append sentence to summary
                                     mmr_selected_ids.append(j)      #append sentence idx
