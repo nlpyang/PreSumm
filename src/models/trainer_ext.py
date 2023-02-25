@@ -131,7 +131,9 @@ class Trainer(object):
         total_stats = Statistics()
         report_stats = Statistics()
         self._start_report_manager(start_time=total_stats.start_time)
-        sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+        if self.args.mmr_select:
+            sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+        else: sentenceModel = None
         while step <= train_steps:
 
             reduce_counter = 0
@@ -416,22 +418,32 @@ class Trainer(object):
             fl = np.array(scores['rouge-l'][0]['f'])
             avg_fs = np.mean([f1,f2,fl],0)
             avg_fs_result.append(avg_fs)
-        return avg_fs_result
+        return np.array(avg_fs_result)
 
     def _loss_compute(self, allSentences,sent_scores,reference,sent_scores_size,sentenceModel):
-        reward_batch = []
+        # reward_batch = torch.zeros(sent_scores_size[1])
         rl_label_batch = torch.zeros(sent_scores_size[:2])
 
         result,selected = self._greedy_nommr(sent_scores,allSentences)
         result_mmr ,selected_mmr = self._mmr_select(sent_scores,allSentences,sentenceModel)
         reward_greedy = self.__get_rouge_single(result,reference)
         reward_mmr = self.__get_rouge_single(result_mmr,reference)
+        # print(f'rl_label_batch {rl_label_batch.size()}')
+        # print(f'selected_mmr {selected_mmr}')
+        for idx,i in enumerate(zip(selected_mmr)):
+            rl_label_batch[idx,i] = 1
+
+
+        # print(f'rl_label_batch {rl_label_batch}')
+   
         # print(f'greedy: {result,selected}')
         # print(f'mmr: {result_mmr,selected_mmr}')
 
-        print(reward_greedy[0]-reward_mmr[0])
-
-        return 0
+        # print(reward_greedy[0]-reward_mmr[0])
+        reward = reward_mmr-reward_greedy
+        reward = torch.FloatTensor(reward)
+        reward.requires_grad_(False)
+        return  reward, rl_label_batch
 
     def _gradient_accumulation(self, true_batchs, normalization, total_stats,
                                report_stats,sentenceModel):
@@ -454,38 +466,53 @@ class Trainer(object):
             sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
             sent_scores_np = sent_scores.cpu().data.numpy()
             selected_ids = np.argsort(-sent_scores_np, 1)
-            sent_scores_np = -np.sort(-sent_scores_np, 1)
-            allSentences_list = []
-            for i, idx in enumerate(selected_ids):
-                # logger.info(f'len(batch.src_str[i]): {len(batch.src_str[i])}')
-                # logger.info(f'selected_ids[i]: {selected_ids[i]}')
-                # logger.info(f'selected_ids[i][:len(batch.src_str[i])]: {selected_ids[i][:len(batch.src_str[i])]}')
+            if self.args.mmr_select:
+                sent_scores_np = -np.sort(-sent_scores_np, 1)
+                allSentences_list = []
+                for i, idx in enumerate(selected_ids):
+                    # logger.info(f'len(batch.src_str[i]): {len(batch.src_str[i])}')
+                    # logger.info(f'selected_ids[i]: {selected_ids[i]}')
+                    # logger.info(f'selected_ids[i][:len(batch.src_str[i])]: {selected_ids[i][:len(batch.src_str[i])]}')
+                    
+                    allSentences = []
+                    if (len(batch.src_str[i]) == 0): continue
+                    for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                        if (j >= len(batch.src_str[i])): continue
+                        candidate = batch.src_str[i][j].strip() 
+                        allSentences.append(candidate)
+                    allSentences_list.append(allSentences)
                 
-                allSentences = []
-                if (len(batch.src_str[i]) == 0): continue
-                for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
-                    if (j >= len(batch.src_str[i])): continue
-                    candidate = batch.src_str[i][j].strip() 
-                    allSentences.append(candidate)
-                allSentences_list.append(allSentences)
-
-            # logger.info(f'batch.src_str: {batch.src_str[i]}')
-            # logger.info(f'sent_scores: {sent_scores_np.shape}')
-            # logger.info(f'allSentences: {allSentences}')
-            # logger.info(f'labels: {labels}')
-            # logger.info(f'labels: {batch.tgt_str}')
-
-            self._loss_compute(allSentences_list,sent_scores_np,batch.tgt_str,sent_scores.size(),sentenceModel)
+                # logger.info(f'batch.src_str: {batch.src_str[i]}')
+                # logger.info(f'sent_scores: {sent_scores_np.shape}')
+                # logger.info(f'allSentences: {allSentences}')
+                # logger.info(f'labels: {labels}')
+                # logger.info(f'labels: {batch.tgt_str}')
+                    
+                
+                # logger.info(f'sent_scores: {sent_scores}') # [[0.3237, 0.5695, 0.4251, 0.4078, 0.1652, 0.3770, 0.5206, 0.5282, 0.6333, 0.6573, 0.6338, 0.6922, 0.7432, 0.6689, 0.5860, 0.4160, 0.3242, 0.4360
+                # logger.info(f'mask: {mask}') # tensor([[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,1., 1., 1.]
+                # logger.info(f'batch.src_str: {batch.src_str}') # whole document
+                # logger.info(f'batch.src_str: {batch.tgt_str}') # whole summary
+                
+                    
+                reward,rl_label = self._loss_compute(allSentences_list,sent_scores_np,batch.tgt_str,sent_scores.size(),sentenceModel)
+                if torch.cuda.is_available(): 
+                    rl_label = rl_label.to(self.gpu_rank)
+                    reward = rl_label.to(self.gpu_rank)
+                # print(f'reward{ reward}')
+                labels_mask = labels.float()
+                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_mask)                
+                
+                labels_mask = labels_mask*reward
+                
+                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label)
+                
+                #print(f'loss_ce, loss_rd {loss_ce, loss_rd}')
+                gamma = 0.99
+                loss = (1-gamma)*loss_ce+gamma*loss_rd
+            else: 
+                loss = self.loss(sent_scores, labels.float()) 
             
-            # logger.info(f'sent_scores: {sent_scores}') # [[0.3237, 0.5695, 0.4251, 0.4078, 0.1652, 0.3770, 0.5206, 0.5282, 0.6333, 0.6573, 0.6338, 0.6922, 0.7432, 0.6689, 0.5860, 0.4160, 0.3242, 0.4360
-            # logger.info(f'mask: {mask}') # tensor([[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,1., 1., 1.]
-            # logger.info(f'batch.src_str: {batch.src_str}') # whole document
-            # logger.info(f'batch.src_str: {batch.tgt_str}') # whole summary
-            loss = self.loss(sent_scores, labels.float()) 
-            # loss_tmp = loss.sum()
-            # logger.info(f'loss.sum(): {loss.sum()}')
-
-
 
             loss = (loss * mask.float()).sum()
             (loss / loss.numel()).backward()
