@@ -169,7 +169,7 @@ class ExtSummarizer(nn.Module):
 
     def forward(self, src, segs, clss, mask_src, mask_cls):
         top_vec = self.bert(src, segs, mask_src)
-        logger.info(f'clss.shape: {clss.shape}')
+     
         sents_vec = top_vec[torch.arange(top_vec.size(0)).unsqueeze(1), clss]
         
         sents_vec = sents_vec * mask_cls[:, :, None].float()

@@ -1,5 +1,5 @@
 import os
-
+import rouge
 import numpy as np
 import torch
 from tensorboardX import SummaryWriter
@@ -131,7 +131,7 @@ class Trainer(object):
         total_stats = Statistics()
         report_stats = Statistics()
         self._start_report_manager(start_time=total_stats.start_time)
-
+        sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
         while step <= train_steps:
 
             reduce_counter = 0
@@ -151,7 +151,7 @@ class Trainer(object):
 
                         self._gradient_accumulation(
                             true_batchs, normalization, total_stats,
-                            report_stats)
+                            report_stats,sentenceModel)
 
                         report_stats = self._maybe_report_training(
                             step, train_steps,
@@ -228,7 +228,7 @@ class Trainer(object):
         stats = Statistics()
 
         # Set sentence embedding model
-        sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+        #sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
 
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
@@ -289,8 +289,8 @@ class Trainer(object):
                             logger.info(f'allSentences: {len(allSentences)})')
                             
                             #logger.info(f'batch.src_str: {batch.src_str}')
-                            #logger.info(len(allSentences))
-                            sentence_embeddings = sentenceModel.encode(allSentences,show_progress_bar = False)
+                            #entelogger.info(len(allSentences))
+                            #snce_embeddings = sentenceModel.encode(allSentences,show_progress_bar = False)
                             sentence_embeddings = torch.FloatTensor(sentence_embeddings)
                             #sentence_embeddings_tensor = torch.stack((torch.FloatTensor(sentence_embeddings)))
                             summary_representation=[] # vector
@@ -349,27 +349,95 @@ class Trainer(object):
 
         return stats
 
-    def _greedy_nommr(self, sent_scores,allSentences,reference):
+    def _greedy_nommr(self, sent_scores,allSentences):
         selected = []
         summary=[]
-        # for i in range(sent_scores.size()[1]):
-        #     print(i)
+        sent_limit = 3
+        for idi, i  in  enumerate(sent_scores):
+            selected_j = []
+            summary_j = []
+            sent_limit = 0
+            for idj, j in  enumerate(i):
+                summary_j.append(allSentences[idi][idj])
+                selected_j.append(idj)
+                sent_limit += 1
+                if sent_limit == 3 : break
+            summary.append(summary_j)
+            selected.append(selected_j)
         return summary, selected
 
-    def _loss_compute(self, allSentences,sent_scores,reference):
-        reward_batch = []
-        rl_label_batch = torch.zeros(sent_scores.size()[1])
+    def _mmr_select(self, sent_scores,allSentences,sentenceModel):
+        
+        
+        selected = []
+        summary=[]
+        lamb = 0.6
+        sent_limit = 3
+        scores = sent_scores
+        for idi, i  in  enumerate(sent_scores):
+            selected_j = []
+            summary_j = []
+            sent_limit = 0
+            sentence_embeddings = sentenceModel.encode(allSentences[idi],show_progress_bar = False)
+            sentence_embeddings = torch.FloatTensor(sentence_embeddings).unsqueeze(0).permute(1,2,0)
+            summary_representation=[]
+            for idj, j in  enumerate(i):
+                # print(f'========{idj}==========')
+                sample = np.argmax(scores[idi])
+                # print(f'sample {sample}')
+                # print(f'scores[idi] {scores[idi]}')
+                summary_j.append(allSentences[idi][sample])
+                selected_j.append(sample)
+                summary_representation.append(sentence_embeddings[sample])
 
-        result,selected = self._greedy_nommr(sent_scores,allSentences,reference)
-    
+                s = torch.stack(summary_representation,1).permute(2,0,1)
+                #print(s)
+                #print(f'sentence_embeddings.shape {sentence_embeddings.shape}')
+                #print(f's.shape {s.shape}')
+                redundancy_score =torch.max(F.cosine_similarity(sentence_embeddings,s,1),1)[0].cpu().numpy()
+                scores = lamb*sent_scores - ((1-lamb)*redundancy_score) + (1-lamb)
+                for i_sel in selected_j:
+                    scores[idi][i_sel] = 0
+                sent_limit += 1
+                if sent_limit == 3 : break
+            summary.append(summary_j)
+            selected.append(selected_j)
+        return summary, selected
+
+    # this fucntion from https://github.com/Wendy-Xiao/redundancy_reduction_longdoc
+    def __get_rouge_single(self, hyp,ref):
+        avg_fs_result = []
+        for i in hyp:
+            hyp = '\n'.join(i)
+            evaluator = rouge.Rouge(metrics=['rouge-n','rouge-l'], max_n=2, limit_length=False,apply_avg=False,apply_best=False)
+            scores = evaluator.get_scores(hyp,ref)
+            f1 = np.array(scores['rouge-1'][0]['f'])
+            f2 = np.array(scores['rouge-2'][0]['f'])
+            fl = np.array(scores['rouge-l'][0]['f'])
+            avg_fs = np.mean([f1,f2,fl],0)
+            avg_fs_result.append(avg_fs)
+        return avg_fs_result
+
+    def _loss_compute(self, allSentences,sent_scores,reference,sent_scores_size,sentenceModel):
+        reward_batch = []
+        rl_label_batch = torch.zeros(sent_scores_size[:2])
+
+        result,selected = self._greedy_nommr(sent_scores,allSentences)
+        result_mmr ,selected_mmr = self._mmr_select(sent_scores,allSentences,sentenceModel)
+        reward_greedy = self.__get_rouge_single(result,reference)
+        reward_mmr = self.__get_rouge_single(result_mmr,reference)
+        # print(f'greedy: {result,selected}')
+        # print(f'mmr: {result_mmr,selected_mmr}')
+
+        print(reward_greedy[0]-reward_mmr[0])
 
         return 0
 
     def _gradient_accumulation(self, true_batchs, normalization, total_stats,
-                               report_stats):
+                               report_stats,sentenceModel):
         if self.grad_accum_count > 1:
             self.model.zero_grad()
-        
+       
         for batch in true_batchs:   # number of this loop != train_steps
             if self.grad_accum_count == 1:
                 self.model.zero_grad()
@@ -382,15 +450,16 @@ class Trainer(object):
             clss = batch.clss
             mask = batch.mask_src
             mask_cls = batch.mask_cls
-
+            
             sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
             sent_scores_np = sent_scores.cpu().data.numpy()
             selected_ids = np.argsort(-sent_scores_np, 1)
-
+            sent_scores_np = -np.sort(-sent_scores_np, 1)
+            allSentences_list = []
             for i, idx in enumerate(selected_ids):
-                logger.info(f'len(batch.src_str[i]): {len(batch.src_str[i])}')
-                logger.info(f'selected_ids[i]: {selected_ids[i]}')
-                #logger.info(f'selected_ids[i][:len(batch.src_str[i])]: {selected_ids[i][:len(batch.src_str[i])]}')
+                # logger.info(f'len(batch.src_str[i]): {len(batch.src_str[i])}')
+                # logger.info(f'selected_ids[i]: {selected_ids[i]}')
+                # logger.info(f'selected_ids[i][:len(batch.src_str[i])]: {selected_ids[i][:len(batch.src_str[i])]}')
                 
                 allSentences = []
                 if (len(batch.src_str[i]) == 0): continue
@@ -398,17 +467,16 @@ class Trainer(object):
                     if (j >= len(batch.src_str[i])): continue
                     candidate = batch.src_str[i][j].strip() 
                     allSentences.append(candidate)
-                
+                allSentences_list.append(allSentences)
 
-
-            # logger.info(f'batch.src_str: {len(batch.src_str[i])}')
+            # logger.info(f'batch.src_str: {batch.src_str[i]}')
             # logger.info(f'sent_scores: {sent_scores_np.shape}')
-            # logger.info(f'allSentences: {len(allSentences)}')
-
+            # logger.info(f'allSentences: {allSentences}')
             # logger.info(f'labels: {labels}')
             # logger.info(f'labels: {batch.tgt_str}')
 
-            self._loss_compute(allSentences,sent_scores,batch.tgt_str)
+            self._loss_compute(allSentences_list,sent_scores_np,batch.tgt_str,sent_scores.size(),sentenceModel)
+            
             # logger.info(f'sent_scores: {sent_scores}') # [[0.3237, 0.5695, 0.4251, 0.4078, 0.1652, 0.3770, 0.5206, 0.5282, 0.6333, 0.6573, 0.6338, 0.6922, 0.7432, 0.6689, 0.5860, 0.4160, 0.3242, 0.4360
             # logger.info(f'mask: {mask}') # tensor([[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,1., 1., 1.]
             # logger.info(f'batch.src_str: {batch.src_str}') # whole document
