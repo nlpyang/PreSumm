@@ -126,14 +126,18 @@ class Trainer(object):
         true_batchs = []
         accum = 0
         normalization = 0
-        train_iter = train_iter_fct()
+        
 
         total_stats = Statistics()
         report_stats = Statistics()
         self._start_report_manager(start_time=total_stats.start_time)
+
         if self.args.mmr_select:
+            train_iter, self.__posweight = train_iter_fct()
             sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
-        else: sentenceModel = None
+        else: 
+            sentenceModel = None
+            train_iter = train_iter_fct()
         while step <= train_steps:
 
             reduce_counter = 0
@@ -499,15 +503,15 @@ class Trainer(object):
                 if torch.cuda.is_available(): 
                     rl_label = rl_label.to(self.gpu_rank)
                     reward = rl_label.to(self.gpu_rank)
+                    self.__posweight=self.__posweight.to(self.gpu_rank)
                 # print(f'reward{ reward}')
                 labels_mask = labels.float()
-                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_mask)                
-                
+                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_mask,weight = mask,reduction='sum',pos_weight= self.__posweight)                
+                # print(f'loss_ce{loss_ce}')
                 labels_mask = labels_mask*reward
+                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label,weight = mask,reduction='sum',pos_weight= self.__posweight)
                 
-                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label)
-                
-                #print(f'loss_ce, loss_rd {loss_ce, loss_rd}')
+                # print(f'loss_ce, loss_rd {loss_ce, loss_rd}')
                 gamma = 0.99
                 loss = (1-gamma)*loss_ce+gamma*loss_rd
             else: 
