@@ -204,6 +204,38 @@ class Trainer(object):
                 stats.update(batch_stats)
             self._report_step(0, step, valid_stats=stats)
             return stats
+        
+    def lambda_tuned_ext(self, test_iter, step):
+        self.model.eval()
+        lambd = 0.5
+        stats = Statistics()
+        sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+        with torch.no_grad():
+            for batch in test_iter:
+                src = batch.src
+                labels = batch.src_sent_labels
+                segs = batch.segs
+                clss = batch.clss
+                mask = batch.mask_src
+                mask_cls = batch.mask_cls
+
+                sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
+                loss = self.loss(sent_scores, labels.float())
+                loss = (loss * mask.float()).sum()
+
+                batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
+                stats.update(batch_stats)
+
+                sent_scores = sent_scores + mask.float()
+                sent_scores = sent_scores.cpu().data.numpy()
+                selected_ids = np.argsort(-sent_scores, 1)
+
+                # mmr select
+
+
+                
+                print(sent_scores)
+                exit()
 
     def test(self, test_iter, step, cal_lead=False, cal_oracle=False):
         """ Validate model.
