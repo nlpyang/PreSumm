@@ -8,7 +8,7 @@ import argparse
 import os
 from others.logging import init_logger
 from train_abstractive import validate_abs, train_abs, baseline, test_abs, test_text_abs
-from train_extractive import train_ext, validate_ext, test_ext
+from train_extractive import train_ext, validate_ext, test_ext, lambda_tuned_ext
 
 model_flags = ['hidden_size', 'ff_size', 'heads', 'emb_size', 'enc_layers', 'enc_hidden_size', 'enc_ff_size',
                'dec_layers', 'dec_hidden_size', 'dec_ff_size', 'encoder', 'ff_actv', 'use_interval']
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-task", default='ext', type=str, choices=['ext', 'abs'])
     parser.add_argument("-encoder", default='bert', type=str, choices=['bert', 'baseline'])
-    parser.add_argument("-mode", default='train', type=str, choices=['train', 'validate', 'test'])
+    parser.add_argument("-mode", default='train', type=str, choices=['train', 'validate', 'test', 'lambda_tuned'])
     parser.add_argument("-bert_data_path", default='../bert_data_new/cnndm')
     parser.add_argument("-model_path", default='../models/')
     parser.add_argument("-result_path", default='../results/cnndm')
@@ -146,12 +146,16 @@ if __name__ == '__main__':
             train_ext(args, device_id)
         elif (args.mode == 'validate'):
             validate_ext(args, device_id)
-        if (args.mode == 'test'):
+        else:
             cp = args.test_from
             try:
                 step = int(cp.split('.')[-2].split('_')[-1])
             except:
                 step = 0
-            test_ext(args, device_id, cp, step)
+            
+            if (args.mode == 'lambda_tuned'):
+                lambda_tuned_ext(args, device_id, cp, step)
+            elif (args.mode == 'test'):
+                test_ext(args, device_id, cp, step)
         # elif (args.mode == 'test_text'):
         #     test_text_abs(args)
