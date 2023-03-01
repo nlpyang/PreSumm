@@ -233,10 +233,49 @@ class Trainer(object):
 
                 # mmr select
 
-
                 
                 print(sent_scores)
                 exit()
+
+    def __mmr_select_test(self,batch,i,idx,sentenceModel,sent_scores):
+                #Append all sentences (not sorted)
+        all_sentences = []
+        for j in range(0, len(idx)):
+            if (j >= len(batch.src_str[i])):
+                continue
+            sentence = batch.src_str[i][j].strip()
+            all_sentences.append(sentence)
+
+        #Encoding and convert to tensor of allSentences
+        all_emb = sentenceModel.encode(all_sentences, show_progress_bar = False)
+        all_emb = torch.FloatTensor(all_emb)
+        all_emb_unsq = all_emb.unsqueeze(2) #torch.size([no.sent, 768, 1]) 
+
+        #Sentence Selection
+        lamb = self.args.lamb
+        scores = sent_scores[i]
+        _pred = [] 
+        mmr_selected_ids = []                            
+        summ_emb = [] 
+
+        while len(mmr_selected_ids) <= len(all_sentences[i]):  #loop for argmax of mmr-score
+            j = idx[0]                      #index of most sentence score 
+            _pred.append(all_sentences[j])  #append sentence to summary
+            mmr_selected_ids.append(j)      #append sentence idx
+
+            summ_emb.append(all_emb[j])                 #append emb current summary
+            s = torch.stack(summ_emb, 1).unsqueeze(0)   #stack from array to tensor
+
+            redund_score = torch.max(F.cosine_similarity(all_emb_unsq,s,1),1)[0]    #torch.tensor 
+            redund_score = redund_score.numpy()                                     #array   
+                                                                
+            scores[j] = -100    #assign score to very low for sent that's in summary
+
+            final_scores = lamb*scores - ((1-lamb)*redund_score)    #cal mmr-score (array)
+            idx = np.argsort(-final_scores)                         #sort again by final scores (array)
+
+            if (not self.args.recall_eval) and len(_pred) == 3:
+                return _pred
 
     def test(self, test_iter, step, cal_lead=False, cal_oracle=False):
         """ Validate model.
@@ -309,44 +348,7 @@ class Trainer(object):
                                 continue
                             
                             if(self.args.mmr_select):                                
-                                #Append all sentences (not sorted)
-                                all_sentences = []
-                                for j in range(0, len(idx)):
-                                    if (j >= len(batch.src_str[i])):
-                                        continue
-                                    sentence = batch.src_str[i][j].strip()
-                                    all_sentences.append(sentence)
-
-                                #Encoding and convert to tensor of allSentences
-                                all_emb = sentenceModel.encode(all_sentences, show_progress_bar = False)
-                                all_emb = torch.FloatTensor(all_emb)
-                                all_emb_unsq = all_emb.unsqueeze(2) #torch.size([no.sent, 768, 1]) 
-                                
-                                #Sentence Selection
-                                lamb = self.args.lamb
-                                scores = sent_scores[i]
-                                _pred = [] 
-                                mmr_selected_ids = []                            
-                                summ_emb = [] 
-                      
-                                while len(mmr_selected_ids) <= len(all_sentences[i]):  #loop for argmax of mmr-score
-                                    j = idx[0]                      #index of most sentence score 
-                                    _pred.append(all_sentences[j])  #append sentence to summary
-                                    mmr_selected_ids.append(j)      #append sentence idx
-
-                                    summ_emb.append(all_emb[j])                 #append emb current summary
-                                    s = torch.stack(summ_emb, 1).unsqueeze(0)   #stack from array to tensor
-
-                                    redund_score = torch.max(F.cosine_similarity(all_emb_unsq,s,1),1)[0]    #torch.tensor 
-                                    redund_score = redund_score.numpy()                                     #array   
-                                                                                     
-                                    scores[j] = -100    #assign score to very low for sent that's in summary
-
-                                    final_scores = lamb*scores - ((1-lamb)*redund_score)    #cal mmr-score (array)
-                                    idx = np.argsort(-final_scores)                         #sort again by final scores (array)
-
-                                    if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3):
-                                        break
+                                _pred = self.__mmr_select_test(batch,i,idx,sentenceModel,sent_scores)
                                 
                             elif(self.args.block_trigram):
                                 _pred = []
