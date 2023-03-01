@@ -133,7 +133,7 @@ class Trainer(object):
         report_stats = Statistics()
         self._start_report_manager(start_time=total_stats.start_time)
 
-        if self.args.mmr_select:
+        if self.args.mmr_select_plus:
             train_iter, self.__posweight = train_iter_fct()
             sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
         else: 

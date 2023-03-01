@@ -129,7 +129,7 @@ class Trainer(object):
         true_batchs = []
         accum = 0
         normalization = 0
-        if self.args.mmr_select:
+        if self.args.mmr_select_plus:
             self.__posweight, train_iter = train_iter_fct()
         else:
             train_iter = train_iter_fct()

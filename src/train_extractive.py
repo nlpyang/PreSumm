@@ -268,7 +268,7 @@ def train_single_ext(args, device_id):
     
     def train_iter_fct():
         # if is_test=False document'text is not included in data_loader
-        if args.mmr_select:
+        if args.mmr_select_plus:
             datasets = load_dataset(args, 'train', shuffle=True)
             posweight = get_posweight(datasets)
             del datasets
