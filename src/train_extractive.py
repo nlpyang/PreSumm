@@ -271,6 +271,8 @@ def train_single_ext(args, device_id):
         if args.mmr_select_plus:
             datasets = load_dataset(args, 'train', shuffle=True)
             posweight = get_posweight(datasets)
+            if torch.cuda.is_available(): 
+               posweight=posweight.to(device_id)
             del datasets
             
             return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
