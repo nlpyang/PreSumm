@@ -5,6 +5,12 @@ import torch
 import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from sentence_transformers import SentenceTransformer
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.util import ngrams
+from string import punctuation
+from collections import Counter
+from scipy.stats import entropy
+import pandas as pd
 
 import distributed
 from models.reporter_ext import ReportMgr, Statistics
@@ -207,7 +213,6 @@ class Trainer(object):
             :obj:`nmt.Statistics`: validation loss statistics
         """
 
-        # Set model in validating mode.
         def _get_ngrams(n, text):
             ngram_set = set()
             text_length = len(text)
@@ -215,14 +220,60 @@ class Trainer(object):
             for i in range(max_index_ngram_start + 1):
                 ngram_set.add(tuple(text[i:i + n]))
             return ngram_set
-
-        def _block_tri(c, p): # Trigram Blocking Function, if occur return TRUE
+        
+        # Trigram Blocking Function, if occur return TRUE
+        def _block_tri(c, p): 
             tri_c = _get_ngrams(3, c.split())
             for s in p:
                 tri_s = _get_ngrams(3, s.split())
                 if len(tri_c.intersection(tri_s)) > 0:
                     return True
             return False
+        
+        # Calculate unique ngrams ratio of a document
+        def unique_ngrams_ratio(pred, n):
+            ngram_list = []
+            for sent in pred:
+                sent = sent.replace('<q>', '')
+                stoplist = set(list(punctuation))
+                tokens = [token for token in word_tokenize(sent) if token not in stoplist]
+                ngram = ngrams(tokens, n)
+                for grams in ngram:
+                    ngram_list.append(grams) 
+            if(len(ngram_list) > 0):
+                uniq_ng_ratio = len(np.unique(np.array(ngram_list), axis=0)) / len(ngram_list)
+                return uniq_ng_ratio
+            else:
+                return 0
+            
+        # Calculate Normailized Inversed Diversity (NID) of a document
+        def normal_inver_diver(pred):
+            unigram_list = []
+            for sent in pred:
+                sent = sent.replace('<q>', '')
+                stoplist = set(list(punctuation))
+                tokens = [token for token in word_tokenize(sent) if token not in stoplist]
+                unigram = ngrams(tokens, 1)
+                for grams in unigram:
+                    unigram_list.append(grams)
+            if len(unigram_list) > 0:
+                counts_dict = Counter(unigram_list)
+                counts = np.array(list(counts_dict.values())) 
+                prob = counts/len(unigram_list)
+                diversity = entropy(prob)    
+                nid = 1- diversity/np.log(len(unigram_list))
+                return nid
+            else:
+                return 0
+            
+        def cal_redun(pred):
+            uniq_unigram = unique_ngrams_ratio(pred, 1)
+            uniq_bigram = unique_ngrams_ratio(pred, 2)
+            uniq_trigram = unique_ngrams_ratio(pred, 3)
+            nid = normal_inver_diver(pred)
+            df = pd.DataFrame([[uniq_unigram, uniq_bigram, uniq_trigram, nid]],
+                columns = ['unique_unigrams_ratio', 'unique_bigrams_ratio', 'unique_trigrams_ratio', 'nid'])
+            return df
 
         if (not cal_lead and not cal_oracle):
             self.model.eval()
@@ -231,6 +282,9 @@ class Trainer(object):
         # Set sentence embedding model
         if(self.args.mmr_select):
             sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+
+        # Redundancy result dataframe 
+        redun_total = pd.DataFrame(columns = ['unique_unigrams_ratio', 'unique_bigrams_ratio', 'unique_trigrams_ratio', 'nid'])
 
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
@@ -341,14 +395,26 @@ class Trainer(object):
                             pred.append(_pred)
                             gold.append(batch.tgt_str[i])
 
+                        #Calulate redundancy metrics
+                        redun_doc = cal_redun(pred)
+                        redun_total = redun_total.append(redun_doc)
+
                         for i in range(len(gold)):
                             save_gold.write(gold[i].strip() + '\n')
                         for i in range(len(pred)):
                             save_pred.write(pred[i].strip() + '\n')
+        
+        redun_mean = redun_total.mean(axis=0) # Calculate mean of each redundancy metrics
+
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
+           
         self._report_step(0, step, valid_stats=stats)
+
+        logger.info('Evaluation of Redundancy in Produced Summary: ')
+        for i, v in redun_mean.items():
+            logger.info('     %s = %f' %(i, v))
 
         return stats
 
