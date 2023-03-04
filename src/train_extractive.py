@@ -197,6 +197,10 @@ def test_ext(args, device_id, pt, step):
     trainer.test(test_iter, step)
 
 def lambda_tuned_ext(args, device_id, pt, step):
+     
+    def lambda_iter_fct():
+        return data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=True, verbose = False), args.batch_size, device,
+                                        shuffle=True, is_test=True)
     device = "cpu" if args.visible_gpus == '-1' else "cuda"
     if (pt != ''):
         test_from = pt
@@ -213,11 +217,11 @@ def lambda_tuned_ext(args, device_id, pt, step):
     model = ExtSummarizer(args, device, checkpoint)
     model.eval()
 
-    test_iter = data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=False),
-                                       args.test_batch_size, device,
-                                       shuffle=False, is_test=True)
+    # test_iter = data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=False),
+    #                                    args.test_batch_size, device,
+    #                                    shuffle=False, is_test=True)
     trainer = build_trainer(args, device_id, model, None)
-    trainer.lambda_tuned_ext(test_iter, step)
+    trainer.lambda_tuned_ext(lambda_iter_fct, step)
 
 def train_ext(args, device_id):
     if (args.world_size > 1):

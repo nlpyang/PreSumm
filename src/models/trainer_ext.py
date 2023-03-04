@@ -206,59 +206,71 @@ class Trainer(object):
             self._report_step(0, step, valid_stats=stats)
             return stats
         
-    def lambda_tuned_ext(self, test_iter, step, is_file_exist = True):
+    def lambda_tuned_ext(self, test_iter_fct, step, is_file_exist = True):
         self.model.eval()
-        lambd = 0.5
         stats = Statistics()
         sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
         can_path = '%slambda_tuned_ext%d.candidate' % (self.args.result_path, step)
         gold_path = '%slambda_tuned_ext%d.gold' % (self.args.result_path, step)
-        logger.info(f'lambda_tuned_ext start')
-        with open(can_path, 'w') as save_pred:
-            with open(gold_path, 'w') as save_gold:
-                with torch.no_grad():
-                    for batch in test_iter:
-                        #logger.info(f'batch_count: {count}')
-                        src = batch.src
-                        labels = batch.src_sent_labels
-                        segs = batch.segs
-                        clss = batch.clss
-                        mask = batch.mask_src
-                        mask_cls = batch.mask_cls
+        result_path = '%slambda_tuned_ext_report.txt' % (self.args.result_path)
+        with open(result_path, 'w') as f:
+            f.write(f'lambda_tuned_ext\n')
+        logger.info(f'can_path {can_path}')
+        logger.info(f'gold_path {gold_path}')
+        for l in range(0,2,1):
+            lamb = l/10
+            logger.info(f'lambda_tuned_ext start lambda {lamb}')
+            test_iter = test_iter_fct()
+            with open(can_path, 'w') as save_pred:
+                with open(gold_path, 'w') as save_gold:
+                    with torch.no_grad():
+                        count = 0
+                        for batch in test_iter:
+                            count += 1
+                            src = batch.src
+                            labels = batch.src_sent_labels
+                            segs = batch.segs
+                            clss = batch.clss
+                            mask = batch.mask_src
+                            mask_cls = batch.mask_cls
 
-                        sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
-                        loss = self.loss(sent_scores, labels.float())
-                        loss = (loss * mask.float()).sum()
+                            sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
+                            loss = self.loss(sent_scores, labels.float())
+                            loss = (loss * mask.float()).sum()
 
-                        batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
-                        stats.update(batch_stats)
+                            batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
+                            stats.update(batch_stats)
 
-                        sent_scores = sent_scores + mask.float()
-                        sent_scores = sent_scores.cpu().data.numpy()
-                        selected_ids = np.argsort(-sent_scores, 1)
+                            sent_scores = sent_scores + mask.float()
+                            sent_scores = sent_scores.cpu().data.numpy()
+                            selected_ids = np.argsort(-sent_scores, 1)
 
-                        gold = []
-                        pred = []
-                        for i, idx in enumerate(selected_ids):
-                            _pred = self.__mmr_select_test(batch,i,idx,sentenceModel,sent_scores)
-                            _pred = '<q>'.join(_pred)
-                            pred.append(_pred)
-                            gold.append(batch.tgt_str[i])
+                            gold = []
+                            pred = []
+                            for i, idx in enumerate(selected_ids):
+                                _pred = self.__mmr_select_test(batch,i,idx,sentenceModel,sent_scores,lamb)
+                                _pred = '<q>'.join(_pred)
+                                pred.append(_pred)
+                                gold.append(batch.tgt_str[i])
+                            
+                            for i in range(len(gold)):
+                                save_gold.write(gold[i].strip() + '\n')
+                            for i in range(len(pred)):
+                                save_pred.write(pred[i].strip() + '\n')
                         
-                        for i in range(len(gold)):
-                            save_gold.write(gold[i].strip() + '\n')
-                        for i in range(len(pred)):
-                            save_pred.write(pred[i].strip() + '\n')
-        rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
-        f1 = np.array(rouges['rouge_1_f_score'])
-        f2 = np.array(rouges['rouge_2_f_score'])
-        fl = np.array(rouges['rouge_l_f_score'])
-        avg_fs = np.mean([f1,f2,fl],0)
-        logger.info(avg_fs)
+            rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
+            with open(result_path, 'a') as f:
+                f.write(f'lambda_tuned_ext start lambda {lamb} \n{rouges}\n')
+            
+            f1 = np.array(rouges['rouge_1_f_score'])
+            f2 = np.array(rouges['rouge_2_f_score'])
+            fl = np.array(rouges['rouge_l_f_score'])
+            avg_fs = np.mean([f1,f2,fl],0)
+            logger.info(avg_fs)
 
 
 
-    def __mmr_select_test(self,batch,i,idx,sentenceModel,sent_scores):
+    def __mmr_select_test(self,batch,i,idx,sentenceModel,sent_scores,lamb_custom = None):
                 #Append all sentences (not sorted)
         all_sentences = []
         for j in range(0, len(idx)):
@@ -273,6 +285,8 @@ class Trainer(object):
         all_emb_unsq = all_emb.unsqueeze(2) #torch.size([no.sent, 768, 1]) 
 
         #Sentence Selection
+        if self.args.mode == 'lambda_tuned':
+            lamb = lamb_custom
         lamb = self.args.lamb
         scores = sent_scores[i]
         _pred = [] 

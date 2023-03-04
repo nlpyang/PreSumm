@@ -73,7 +73,7 @@ class Batch(object):
 
 
 
-def load_dataset(args, corpus_type, shuffle):
+def load_dataset(args, corpus_type, shuffle, verbose = True):
     """
     Dataset generator. Don't do extra stuff here, like printing,
     because they will be postponed to the first loading time.
@@ -87,8 +87,9 @@ def load_dataset(args, corpus_type, shuffle):
 
     def _lazy_dataset_loader(pt_file, corpus_type):
         dataset = torch.load(pt_file)
-        logger.info('Loading %s dataset from %s, number of examples: %d' %
-                    (corpus_type, pt_file, len(dataset)))
+        if verbose:
+            logger.info('Loading %s dataset from %s, number of examples: %d' %
+                        (corpus_type, pt_file, len(dataset)))
         return dataset
 
     # Sort the glob output by file name (by increasing indexes).
