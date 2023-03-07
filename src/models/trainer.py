@@ -96,7 +96,6 @@ class Trainer(object):
         self.n_gpu = n_gpu
         self.gpu_rank = gpu_rank
         self.report_manager = report_manager
-
         self.loss = loss
 
         assert grad_accum_count > 0
@@ -130,7 +129,10 @@ class Trainer(object):
         true_batchs = []
         accum = 0
         normalization = 0
-        train_iter = train_iter_fct()
+        if self.args.mmr_select_plus:
+            self.__posweight, train_iter = train_iter_fct()
+        else:
+            train_iter = train_iter_fct()
 
         total_stats = Statistics()
         report_stats = Statistics()
