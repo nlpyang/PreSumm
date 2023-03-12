@@ -676,11 +676,12 @@ class Trainer(object):
                     rl_label = rl_label.to(self.gpu_rank)
                     reward = rl_label.to(self.gpu_rank)
                 # print(f'reward{ reward}')
-                labels_mask = labels.float()
-                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_mask,weight = mask,reduction='sum',pos_weight= self.__posweight)                
+                labels_float = labels.float() # it's label in redundancy paper
+                mask_new = labels.gt(-1).float()
+                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_float,weight = mask_new,reduction='sum',pos_weight= self.__posweight)                
                 # print(f'loss_ce{loss_ce}')
-                labels_mask = labels_mask*reward
-                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label,weight = mask,reduction='sum',pos_weight= self.__posweight)
+                mask_new = mask_new*reward
+                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label,weight = mask_new,reduction='sum',pos_weight= self.__posweight)
                 
                 # print(f'loss_ce, loss_rd {loss_ce, loss_rd}')
                 gamma = 0.99
