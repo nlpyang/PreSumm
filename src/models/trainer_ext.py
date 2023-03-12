@@ -18,7 +18,7 @@ import distributed
 from models.reporter_ext import ReportMgr, Statistics
 from others.logging import logger
 from others.utils import test_rouge, rouge_results_to_str
-
+from datetime import datetime
 
 def _tally_parameters(model):
     n_params = sum([p.nelement() for p in model.parameters()])
@@ -218,11 +218,13 @@ class Trainer(object):
         self.model.eval()
         stats = Statistics()
         sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
-        can_path = '%slambda_tuned_ext%d.candidate' % (self.args.result_path, step)
-        gold_path = '%slambda_tuned_ext%d.gold' % (self.args.result_path, step)
+        can_path = '%slambda_tuned_ext.candidate' % (self.args.result_path)
+        gold_path = '%slambda_tuned_ext.gold' % (self.args.result_path)
         result_path = '%slambda_tuned_ext_report.txt' % (self.args.result_path)
-        with open(result_path, 'w') as f:
-            f.write(f'lambda_tuned_ext\n')
+        now = datetime.now()
+        current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+        with open(result_path, 'a') as f:
+            f.write(f'lambda_tuned_ext_{current_time}\n')
         logger.info(f'can_path {can_path}')
         logger.info(f'gold_path {gold_path}')
         for l in range(0,2,1):
@@ -306,7 +308,7 @@ class Trainer(object):
         #Sentence Selection
         if self.args.mode == 'lambda_tuned':
             lamb = lamb_custom
-        lamb = self.args.lamb
+        else: lamb = self.args.lamb
         scores = sent_scores[i]
         _pred = [] 
         mmr_selected_ids = []                            
