@@ -678,26 +678,27 @@ class Trainer(object):
                 # print(f'reward{ reward}')
                 labels_float = labels.float() # it's label in redundancy paper
                 mask_new = labels.gt(-1).float()
-                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_float,weight = mask_new,reduction='sum',pos_weight= self.__posweight)                
+                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_float,weight = mask_new,reduction='none',pos_weight= self.__posweight)                
                 # print(f'loss_ce{loss_ce}')
                 mask_new = mask_new*reward
-                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label,weight = mask_new,reduction='sum',pos_weight= self.__posweight)
+                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label,weight = mask_new,reduction='none',pos_weight= self.__posweight)
                 
                 # print(f'loss_ce, loss_rd {loss_ce, loss_rd}')
                 gamma = 0.99
                 loss = (1-gamma)*loss_ce+gamma*loss_rd
             else: 
-                loss = self.loss(sent_scores, labels.float()) 
+                loss = self.loss(sent_scores, labels.float())
             
-
-            loss = (loss * mask.float()).sum()
+            
+            
+            
+            loss = (loss * mask.float()).sum() # like reduction='sum' in F.binary_cross_entropy_with_logits
             (loss / loss.numel()).backward()
 
             # logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
             # logger.info("Numbers in mask are: {}".format(' '.join(map(str, mask))))
 
-            batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization)
-
+            batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization) # normalization is n_docs
             total_stats.update(batch_stats)
             report_stats.update(batch_stats)
 
