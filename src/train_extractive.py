@@ -196,6 +196,33 @@ def test_ext(args, device_id, pt, step):
     trainer = build_trainer(args, device_id, model, None)
     trainer.test(test_iter, step)
 
+def lambda_tuned_ext(args, device_id, pt, step):
+     
+    def lambda_iter_fct():
+        return data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=True, verbose = False), args.batch_size, device,
+                                        shuffle=True, is_test=True)
+    device = "cpu" if args.visible_gpus == '-1' else "cuda"
+    if (pt != ''):
+        test_from = pt
+    else:
+        test_from = args.test_from
+    logger.info('Loading checkpoint from %s' % test_from)
+    checkpoint = torch.load(test_from, map_location=lambda storage, loc: storage)
+    opt = vars(checkpoint['opt'])
+    for k in opt.keys():
+        if (k in model_flags):
+            setattr(args, k, opt[k])
+    print(args)
+
+    model = ExtSummarizer(args, device, checkpoint)
+    model.eval()
+
+    # test_iter = data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=False),
+    #                                    args.test_batch_size, device,
+    #                                    shuffle=False, is_test=True)
+    trainer = build_trainer(args, device_id, model, None)
+    trainer.lambda_tuned_ext(lambda_iter_fct, step)
+
 def train_ext(args, device_id):
     if (args.world_size > 1):
         train_multi_ext(args)
@@ -232,9 +259,31 @@ def train_single_ext(args, device_id):
     else:
         checkpoint = None
 
+    def get_posweight(datasets):
+        total_num=0
+        total_pos=0
+        for dataset in datasets:
+            for i in dataset:
+                total_num+=len(i['src_sent_labels'])
+                total_pos+=sum(i['src_sent_labels'])
+
+        print('====Compute pos weight done! There are %d sentences in total, with %d sentences as positive===='%(total_num,total_pos))
+        return torch.FloatTensor([(total_num-total_pos)/float(total_pos)])
+    
     def train_iter_fct():
-        return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
-                                      shuffle=True, is_test=False)
+        # if is_test=False document'text is not included in data_loader
+        if args.mmr_select_plus:
+            datasets = load_dataset(args, 'train', shuffle=True)
+            posweight = get_posweight(datasets)
+            if torch.cuda.is_available(): 
+               posweight=posweight.to(device_id)
+            del datasets
+            
+            return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
+                                        shuffle=True, is_test=True),posweight
+        else:
+            return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
+                                        shuffle=True, is_test=False)
 
     model = ExtSummarizer(args, device, checkpoint)
     optim = model_builder.build_optim(args, model, checkpoint)

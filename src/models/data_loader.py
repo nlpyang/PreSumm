@@ -2,7 +2,7 @@ import bisect
 import gc
 import glob
 import random
-
+import os
 import torch
 from tqdm import tqdm
 
@@ -50,9 +50,19 @@ class Batch(object):
             setattr(self, 'mask_src', mask_src.to(device))
             setattr(self, 'mask_tgt', mask_tgt.to(device))
 
-
+            
+            
+            
             if (is_test):
                 src_str = [x[-2] for x in data]
+                # print(f'clss {clss}')
+                # old = 0
+                # for i in clss[0]:
+                #     print(old,int(i))
+                #     print(f'{src_str[0][old:int(i)]}')
+                #     old = int(i)
+                
+                # exit()
                 setattr(self, 'src_str', src_str)
                 tgt_str = [x[-1] for x in data]
                 setattr(self, 'tgt_str', tgt_str)
@@ -63,7 +73,7 @@ class Batch(object):
 
 
 
-def load_dataset(args, corpus_type, shuffle):
+def load_dataset(args, corpus_type, shuffle, verbose = True):
     """
     Dataset generator. Don't do extra stuff here, like printing,
     because they will be postponed to the first loading time.
@@ -77,8 +87,9 @@ def load_dataset(args, corpus_type, shuffle):
 
     def _lazy_dataset_loader(pt_file, corpus_type):
         dataset = torch.load(pt_file)
-        logger.info('Loading %s dataset from %s, number of examples: %d' %
-                    (corpus_type, pt_file, len(dataset)))
+        if verbose:
+            logger.info('Loading %s dataset from %s, number of examples: %d' %
+                        (corpus_type, pt_file, len(dataset)))
         return dataset
 
     # Sort the glob output by file name (by increasing indexes).

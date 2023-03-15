@@ -3,3 +3,8 @@ numpy==1.17.2
 pytorch-transformers==1.2.0
 tensorboardX==1.9
 torch==1.1.0
+transformers==2.11.0
+sentence-transformers==0.2.6.2
+pandas==1.1.5
+nltk==3.6.7 
+scipy==1.5.4

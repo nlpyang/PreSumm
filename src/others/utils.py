@@ -54,8 +54,8 @@ def process(params):
 def test_rouge(temp_dir, cand, ref):
     candidates = [line.strip() for line in open(cand, encoding='utf-8')]
     references = [line.strip() for line in open(ref, encoding='utf-8')]
-    print(len(candidates))
-    print(len(references))
+    # print(len(candidates))
+    # print(len(references))
     assert len(candidates) == len(references)
 
     cnt = len(candidates)
@@ -82,7 +82,7 @@ def test_rouge(temp_dir, cand, ref):
         r.model_filename_pattern = 'ref.#ID#.txt'
         r.system_filename_pattern = r'cand.(\d+).txt'
         rouge_results = r.convert_and_evaluate()
-        print(rouge_results)
+        # print(rouge_results)
         results_dict = r.output_to_dict(rouge_results)
     finally:
         pass
@@ -113,7 +113,7 @@ def tile(x, count, dim=0):
     return x
 
 def rouge_results_to_str(results_dict):
-    return ">> ROUGE-F(1/2/3/l): {:.2f}/{:.2f}/{:.2f}\nROUGE-R(1/2/3/l): {:.2f}/{:.2f}/{:.2f}\n".format(
+    return ">> ROUGE-F(1/2/l): {:.2f}/{:.2f}/{:.2f}\nROUGE-R(1/2/l): {:.2f}/{:.2f}/{:.2f}\n".format(
         results_dict["rouge_1_f_score"] * 100,
         results_dict["rouge_2_f_score"] * 100,
         # results_dict["rouge_3_f_score"] * 100,
