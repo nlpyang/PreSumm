@@ -1,5 +1,5 @@
 import os
-import rouge
+#import rouge
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -457,7 +457,7 @@ class Trainer(object):
                                 _pred = self.__mmr_select_test(batch,i,idx,sentenceModel,sent_scores)
                                 
                             elif(self.args.block_trigram):
-                                
+                                _pred = []
                                 for j in selected_ids[i][:len(batch.src_str[i])]:
                                     if (j >= len(batch.src_str[i])):
                                         continue
