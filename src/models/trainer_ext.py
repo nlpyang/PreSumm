@@ -402,8 +402,6 @@ class Trainer(object):
             return False
         
         
-        
-
         if (not cal_lead and not cal_oracle):
             self.model.eval()
         stats = Statistics()
@@ -495,7 +493,13 @@ class Trainer(object):
                             save_gold.write(gold[i].strip() + '\n')
                         for i in range(len(pred)):
                             save_pred.write(pred[i].strip() + '\n')
-        redun_mean = redun_total.mean(axis=0) # Calculate mean of each redundancy metrics
+
+        # Write redun metrics to csv file
+        redun_path = '%s_redundancy.csv' %(self.args.result_path)
+        redun_total.to_csv(redun_path) 
+        
+        # Calculate mean of each redundancy metrics
+        redun_mean = redun_total.mean(axis=0) 
         
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
