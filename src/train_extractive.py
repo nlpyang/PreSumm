@@ -199,7 +199,7 @@ def test_ext(args, device_id, pt, step):
 def lambda_tuned_ext(args, device_id, pt, step):
      
     def lambda_iter_fct():
-        return data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=True, verbose = False), args.batch_size, device,
+        return data_loader.Dataloader(args, load_dataset(args, 'valid', shuffle=True, verbose = False), args.batch_size, device,
                                         shuffle=True, is_test=True)
     device = "cpu" if args.visible_gpus == '-1' else "cuda"
     if (pt != ''):
