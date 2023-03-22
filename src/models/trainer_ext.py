@@ -18,7 +18,9 @@ import distributed
 from models.reporter_ext import ReportMgr, Statistics
 from others.logging import logger
 from others.utils import test_rouge, rouge_results_to_str
+
 from datetime import datetime
+from tqdm import tqdm
 
 def _tally_parameters(model):
     n_params = sum([p.nelement() for p in model.parameters()])
@@ -218,24 +220,28 @@ class Trainer(object):
         self.model.eval()
         stats = Statistics()
         sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
-        can_path = '%slambda_tuned_ext.candidate' % (self.args.result_path)
-        gold_path = '%slambda_tuned_ext.gold' % (self.args.result_path)
+        
         result_path = '%slambda_tuned_ext_report.txt' % (self.args.result_path)
         now = datetime.now()
         current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
         with open(result_path, 'a') as f:
             f.write(f'lambda_tuned_ext_{current_time}\n')
-        logger.info(f'can_path {can_path}')
-        logger.info(f'gold_path {gold_path}')
-        for l in range(0,2,1):
+
+        for l in range(9,10+1,1):
             redun_total = pd.DataFrame(columns = ['unique_unigrams_ratio', 'unique_bigrams_ratio', 'unique_trigrams_ratio', 'nid'])
-            lamb = (l*6)/10
+            lamb = l/10
+            
+            can_path = '%slambda_tuned_ext_%s.candidate' % (self.args.result_path,l)
+            gold_path = '%slambda_tuned_ext_%s.gold' % (self.args.result_path,l)
+            logger.info(f'can_path {can_path}')
+            logger.info(f'gold_path {gold_path}')
             logger.info(f'lambda_tuned_ext start lambda {lamb}')
             test_iter = test_iter_fct()
             with open(can_path, 'w') as save_pred:
                 with open(gold_path, 'w') as save_gold:
                     with torch.no_grad():
-                        for batch in test_iter:
+                        for batch in tqdm(test_iter,total=13368-1):
+                            
                             gold = []
                             pred = []
                             src = batch.src
@@ -255,7 +261,6 @@ class Trainer(object):
                             sent_scores = sent_scores + mask.float()
                             sent_scores = sent_scores.cpu().data.numpy()
                             selected_ids = np.argsort(-sent_scores, 1)
-
                             
                             for i, idx in enumerate(selected_ids):
                                 _pred = self.__mmr_select_test(batch,i,idx,sentenceModel,sent_scores,lamb)
@@ -263,6 +268,7 @@ class Trainer(object):
                                 
                                 pred.append(_pred)
                                 gold.append(batch.tgt_str[i])
+
                             
                             for i in range(len(gold)):
                                 save_gold.write(gold[i].strip() + '\n')
@@ -274,17 +280,18 @@ class Trainer(object):
 
             redun_mean = redun_total.mean(axis=0)
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
-            with open(result_path, 'a') as f:
-                f.write(f'lambda_tuned_ext start lambda {lamb} \n{rouges}\n')
-                for i, v in redun_mean.items():
-                    f.write(f'{i} = {v}\n')
-                f.write('\n')
-            
             f1 = np.array(rouges['rouge_1_f_score'])
             f2 = np.array(rouges['rouge_2_f_score'])
             fl = np.array(rouges['rouge_l_f_score'])
             avg_fs = np.mean([f1,f2,fl],0)
-            logger.info(avg_fs)
+            logger.info(f'rouge: {rouges}')
+            logger.info(f'avg-rouge: {avg_fs}')
+            with open(result_path, 'a') as f:
+                f.write(f'lambda_tuned_ext start lambda {lamb} avg-rouge {avg_fs} \n{rouges}\n')
+                for i, v in redun_mean.items():
+                    f.write(f'{i} = {v}\n')
+                f.write('\n')
+
             for i, v in redun_mean.items():
                 logger.info('%s = %f' %(i, v))
             
@@ -292,7 +299,9 @@ class Trainer(object):
 
 
     def __mmr_select_test(self,batch,i,idx,sentenceModel,sent_scores,lamb_custom = None):
-                #Append all sentences (not sorted)
+        #Append all sentences (not sorted)
+        
+        
         all_sentences = []
         for j in range(0, len(idx)):
             if (j >= len(batch.src_str[i])):
@@ -304,7 +313,7 @@ class Trainer(object):
         all_emb = sentenceModel.encode(all_sentences, show_progress_bar = False)
         all_emb = torch.FloatTensor(all_emb)
         all_emb_unsq = all_emb.unsqueeze(2) #torch.size([no.sent, 768, 1]) 
-
+        
         #Sentence Selection
         if self.args.mode == 'lambda_tuned':
             lamb = lamb_custom
@@ -313,7 +322,6 @@ class Trainer(object):
         _pred = [] 
         mmr_selected_ids = []                            
         summ_emb = [] 
-
         while len(mmr_selected_ids) <= len(all_sentences[i]):  #loop for argmax of mmr-score
             j = idx[0]                      #index of most sentence score 
             _pred.append(all_sentences[j])  #append sentence to summary
@@ -332,6 +340,7 @@ class Trainer(object):
 
             if (not self.args.recall_eval) and len(_pred) == 3:
                 return _pred
+        
             
     # Calculate unique ngrams ratio of a document
     def unique_ngrams_ratio(self,pred, n):
@@ -411,10 +420,17 @@ class Trainer(object):
         logger.info(f'test start')
 
         # Redundancy result dataframe 
-        redun_total = pd.DataFrame(columns = ['unique_unigrams_ratio', 'unique_bigrams_ratio', 'unique_trigrams_ratio', 'nid'])
-
+        redun_total = pd.DataFrame(columns = ['unique_unigrams_ratio', 
+                                              'unique_bigrams_ratio', 
+                                              'unique_trigrams_ratio', 
+                                              'nid',
+                                              'rouge-1','rouge-2','rouge-l'])
+        report_path_can= '%stmp.candidate' % (self.args.result_path)
+        report_path_gold= '%stmp.gold' % (self.args.result_path)
+        gold_path = '%stmp.gold' % (self.args.result_path)
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
+        report_path = '%sreport_all_doc.text' % (self.args.result_path)
         with open(can_path, 'w') as save_pred:
             with open(gold_path, 'w') as save_gold:
                 with torch.no_grad():
@@ -487,20 +503,27 @@ class Trainer(object):
 
                         #Calulate redundancy metrics
                         redun_doc = self.cal_redun(pred)
+                    
+                        with open(report_path_gold, 'w') as r_gold:
+                            for i in range(len(gold)):
+                                save_gold.write(gold[i].strip() + '\n')
+                            r_gold.write(gold[i].strip() + '\n')
+
+                        with open(report_path_can, 'w') as r_can:
+                            for i in range(len(pred)):
+                                save_pred.write(pred[i].strip() + '\n')
+                            r_can.write(pred[i].strip() + '\n')
+
+                        rouges_per_doc = test_rouge(self.args.temp_dir, report_path_can, report_path_gold)        
+                        redun_doc['rouge-1'] = rouges_per_doc['rouge_1_f_score']
+                        redun_doc['rouge-2'] = rouges_per_doc['rouge_2_f_score']
+                        redun_doc['rouge-l'] = rouges_per_doc['rouge_l_f_score']
                         redun_total = redun_total.append(redun_doc)
-
-                        for i in range(len(gold)):
-                            save_gold.write(gold[i].strip() + '\n')
-                        for i in range(len(pred)):
-                            save_pred.write(pred[i].strip() + '\n')
-
-        # Write redun metrics to csv file
-        redun_path = '%s_redundancy.csv' %(self.args.result_path)
-        redun_total.to_csv(redun_path) 
-        
-        # Calculate mean of each redundancy metrics
-        redun_mean = redun_total.mean(axis=0) 
-        
+                        
+                            
+        redun_mean = redun_total.mean(axis=0) # Calculate mean of each redundancy metrics
+        # save dataframe to csv
+        redun_total.to_csv(self.args.result_path+'/report.csv', sep=',', index=False)
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
