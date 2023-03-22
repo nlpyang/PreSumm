@@ -529,7 +529,8 @@ class Trainer(object):
     def _mmr_select(self, sent_scores,allSentences,sentenceModel):
         selected = []
         summary=[]
-        lamb = 0.6
+        lamb = self.args.lamb
+
         sent_limit = 3
         scores = sent_scores
         for idi, i  in  enumerate(sent_scores):
