@@ -111,7 +111,7 @@ if __name__ == '__main__':
     parser.add_argument("-block_trigram", type=str2bool, nargs='?', const=True, default=False)
     parser.add_argument("-mmr_select", type=str2bool, nargs='?', const=True, default=False)
     parser.add_argument("-mmr_select_plus", type=str2bool, nargs='?', const=True, default=False)
-    parser.add_argument("-lamb", default= 0.6, type=float)
+    parser.add_argument("-lamb", default= 0.7, type=float)
 
     args = parser.parse_args()
     args.gpu_ranks = [int(i) for i in range(len(args.visible_gpus.split(',')))]

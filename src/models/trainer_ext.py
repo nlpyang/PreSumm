@@ -157,7 +157,6 @@ class Trainer(object):
 
                     true_batchs.append(batch)
                     normalization += batch.batch_size
-
                     accum += 1
                     if accum == self.grad_accum_count:
                         reduce_counter += 1
@@ -177,10 +176,11 @@ class Trainer(object):
 
                         true_batchs = []
                         accum = 0
+                        
                         normalization = 0
                         if (step % self.save_checkpoint_steps == 0 and self.gpu_rank == 0):
                             self._save(step)
-
+                        
                         step += 1
                         if step > train_steps:
                             break
@@ -560,17 +560,19 @@ class Trainer(object):
         summary=[]
         lamb = 0.6
         sent_limit = 3
-        scores = sent_scores
+        
         for idi, i  in  enumerate(sent_scores):
+            scores_importance = i[:len(allSentences[idi])].copy()
+            scores = scores_importance.copy()
             selected_j = []
             summary_j = []
             sent_limit = 0
             sentence_embeddings = sentenceModel.encode(allSentences[idi],show_progress_bar = False)
             sentence_embeddings = torch.FloatTensor(sentence_embeddings).unsqueeze(0).permute(1,2,0)
             summary_representation=[]
-            for idj, j in  enumerate(i):
+            for idj, j in  enumerate(i[:len(allSentences[idi])]):
                 # print(f'========{idj}==========')
-                sample = np.argmax(scores[idi])
+                sample = np.argmax(scores)
                 # print(f'sample {sample}')
                 # print(f'scores[idi] {scores[idi]}')
                 summary_j.append(allSentences[idi][sample])
@@ -578,13 +580,26 @@ class Trainer(object):
                 summary_representation.append(sentence_embeddings[sample])
 
                 s = torch.stack(summary_representation,1).permute(2,0,1)
-                #print(s)
-                #print(f'sentence_embeddings.shape {sentence_embeddings.shape}')
-                #print(f's.shape {s.shape}')
+                
+                
                 redundancy_score =torch.max(F.cosine_similarity(sentence_embeddings,s,1),1)[0].cpu().numpy()
-                scores = lamb*sent_scores - ((1-lamb)*redundancy_score) + (1-lamb)
+                
+                # try:
+                scores = lamb*scores_importance - ((1-lamb)*redundancy_score) + (1-lamb)
+                
+                # except:
+                #     print('fix ',scores)
+                #     print(f'========{idi} {idj}==========')
+                #     print(allSentences[idi])
+                #     print(len(allSentences[idi]))
+                #     print(f'redundancy_score {redundancy_score.shape}')  
+                #     print(f'sent_scores {sent_scores.shape}')
+                #     print('-----')
+                #     print(f'sentence_embeddings.shape {sentence_embeddings.shape}')
+                #     print(f's.shape {s.shape}')
+                #     exit()
                 for i_sel in selected_j:
-                    scores[idi][i_sel] = 0
+                    scores[i_sel] = 0
                 sent_limit += 1
                 if sent_limit == 3 : break
             summary.append(summary_j)
@@ -627,7 +642,7 @@ class Trainer(object):
 
     def _loss_compute(self, allSentences,sent_scores,reference,sent_scores_size,sentenceModel):
         # reward_batch = torch.zeros(sent_scores_size[1])
-        rl_label_batch = torch.zeros(sent_scores_size[:2])
+        rl_label_batch = torch.zeros(sent_scores_size)
 
         result,selected = self._greedy_nommr(sent_scores,allSentences)
         result_mmr ,selected_mmr = self._mmr_select(sent_scores,allSentences,sentenceModel)
@@ -644,8 +659,8 @@ class Trainer(object):
         # print(f'greedy: {result,selected}')
         # print(f'mmr: {result_mmr,selected_mmr}')
 
-        # print(reward_greedy[0]-reward_mmr[0])
-        reward = reward_mmr-reward_greedy
+        #reward = reward_mmr-reward_greedy
+        reward = reward_greedy-reward_mmr
         reward = torch.FloatTensor(reward)
         reward.requires_grad_(False)
         return  reward, rl_label_batch
@@ -698,31 +713,56 @@ class Trainer(object):
                 # logger.info(f'mask: {mask}') # tensor([[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,1., 1., 1.]
                 # logger.info(f'batch.src_str: {batch.src_str}') # whole document
                 # logger.info(f'batch.src_str: {batch.tgt_str}') # whole summary
+
+                  
                 
-                    
+                #try:
                 reward,rl_label = self._loss_compute(allSentences_list,sent_scores_np,batch.tgt_str,sent_scores.size(),sentenceModel)
+                # except Exception as e:
+                #     print(e)
+                #     print(len(allSentences_list[0]),len(sent_scores_np[0]))
+                #     print('outer loop')
+                #     print(allSentences_list)
+                #     print(sent_scores_np)
+                #     print('outer loop')
                 if torch.cuda.is_available(): 
                     rl_label = rl_label.to(self.gpu_rank)
-                    reward = rl_label.to(self.gpu_rank)
+                    reward = reward.reshape(sent_scores.shape[0], 1)
+                    reward = reward.to(self.gpu_rank)
                 # print(f'reward{ reward}')
                 labels_float = labels.float() # it's label in redundancy paper
                 mask_new = labels.gt(-1).float()
-                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_float,weight = mask_new,reduction='none',pos_weight= self.__posweight)                
-                # print(f'loss_ce{loss_ce}')
-                mask_new = mask_new*reward
-                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label,weight = mask_new,reduction='none',pos_weight= self.__posweight)
                 
+                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_float,weight = mask_new,reduction='sum',pos_weight= self.__posweight)                
+                try:
+                    mask_new = mask_new*reward
+                except Exception as e:
+                    print(e)
+                    print(f'sent_scores {sent_scores.shape}')
+                    print(f'reward {reward.shape}')
+                    print(f'mask_new {mask_new.shape}')
+                    exit()
+                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label,weight = mask_new,reduction='sum',pos_weight= self.__posweight)
                 # print(f'loss_ce, loss_rd {loss_ce, loss_rd}')
                 gamma = 0.99
+                # loss = 0
                 loss = (1-gamma)*loss_ce+gamma*loss_rd
+                print('rd no', F.binary_cross_entropy_with_logits(sent_scores,rl_label,reduction='sum',pos_weight= self.__posweight))
+                print('loss_rd ',loss_rd)
+                print('loss_ce ',loss_ce)
+                print('loss ',loss)
+                print('======')
+                loss.backward()
+                
             else: 
                 loss = self.loss(sent_scores, labels.float())
+                loss = (loss * mask.float()).sum() # like reduction='sum' in F.binary_cross_entropy_with_logits
+                (loss / loss.numel()).backward()
             
             
             
             
-            loss = (loss * mask.float()).sum() # like reduction='sum' in F.binary_cross_entropy_with_logits
-            (loss / loss.numel()).backward()
+           
 
             # logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
             # logger.info("Numbers in mask are: {}".format(' '.join(map(str, mask))))
