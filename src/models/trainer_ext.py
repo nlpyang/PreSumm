@@ -184,7 +184,11 @@ class Trainer(object):
                         step += 1
                         if step > train_steps:
                             break
-            train_iter = train_iter_fct()
+            if self.args.mmr_select_plus:
+                train_iter, self.__posweight = train_iter_fct()
+            else: 
+                sentenceModel = None
+                train_iter = train_iter_fct()
 
         return total_stats
 
@@ -661,6 +665,8 @@ class Trainer(object):
 
         #reward = reward_mmr-reward_greedy
         reward = reward_greedy-reward_mmr
+        # print(selected, selected_mmr)
+        # print(reward_greedy, reward_mmr)
         reward = torch.FloatTensor(reward)
         reward.requires_grad_(False)
         return  reward, rl_label_batch
@@ -733,7 +739,7 @@ class Trainer(object):
                 labels_float = labels.float() # it's label in redundancy paper
                 mask_new = labels.gt(-1).float()
                 
-                loss_ce = F.binary_cross_entropy_with_logits(sent_scores,labels_float,weight = mask_new,reduction='sum',pos_weight= self.__posweight)                
+                loss_ce = F.binary_cross_entropy(sent_scores,labels_float,weight = mask_new,reduction='sum')                
                 try:
                     mask_new = mask_new*reward
                 except Exception as e:
@@ -742,16 +748,17 @@ class Trainer(object):
                     print(f'reward {reward.shape}')
                     print(f'mask_new {mask_new.shape}')
                     exit()
-                loss_rd = F.binary_cross_entropy_with_logits(sent_scores,rl_label,weight = mask_new,reduction='sum',pos_weight= self.__posweight)
+                loss_rd = F.binary_cross_entropy(sent_scores,rl_label,weight = mask_new,reduction='sum')
                 # print(f'loss_ce, loss_rd {loss_ce, loss_rd}')
                 gamma = 0.99
                 # loss = 0
                 loss = (1-gamma)*loss_ce+gamma*loss_rd
-                print('rd no', F.binary_cross_entropy_with_logits(sent_scores,rl_label,reduction='sum',pos_weight= self.__posweight))
-                print('loss_rd ',loss_rd)
-                print('loss_ce ',loss_ce)
-                print('loss ',loss)
-                print('======')
+                # print('reward', mask_new)
+                # print('rd no', F.binary_cross_entropy(sent_scores,rl_label,reduction='sum'))
+                # print('loss_rd ',loss_rd)
+                # print('loss_ce ',loss_ce)
+                # print('loss ',loss)
+                # print('======')
                 loss.backward()
                 
             else: 
