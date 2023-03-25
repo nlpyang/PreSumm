@@ -139,8 +139,8 @@ class Trainer(object):
         normalization = 0
         
 
-        total_stats = Statistics()
-        report_stats = Statistics()
+        total_stats = Statistics(is_mmr_select_plus = self.args.mmr_select_plus)
+        report_stats = Statistics(is_mmr_select_plus = self.args.mmr_select_plus)
         self._start_report_manager(start_time=total_stats.start_time)
 
         if self.args.mmr_select_plus:
@@ -172,7 +172,7 @@ class Trainer(object):
                         report_stats = self._maybe_report_training(
                             step, train_steps,
                             self.optim.learning_rate,
-                            report_stats)
+                            report_stats,is_mmr_select_plus = self.args.mmr_select_plus)
 
                         true_batchs = []
                         accum = 0
@@ -735,6 +735,7 @@ class Trainer(object):
                     rl_label = rl_label.to(self.gpu_rank)
                     reward = reward.reshape(sent_scores.shape[0], 1)
                     reward = reward.to(self.gpu_rank)
+                else: reward = reward.reshape(sent_scores.shape[0], 1)
                 # print(f'reward{ reward}')
                 labels_float = labels.float() # it's label in redundancy paper
                 mask_new = labels.gt(-1).float()
@@ -753,18 +754,28 @@ class Trainer(object):
                 gamma = 0.99
                 # loss = 0
                 loss = (1-gamma)*loss_ce+gamma*loss_rd
-                # print('reward', mask_new)
-                # print('rd no', F.binary_cross_entropy(sent_scores,rl_label,reduction='sum'))
-                # print('loss_rd ',loss_rd)
-                # print('loss_ce ',loss_ce)
-                # print('loss ',loss)
-                # print('======')
+                print('reward', mask_new)
+                print('rd no', F.binary_cross_entropy(sent_scores,rl_label,reduction='sum'))
+                print('loss_rd ',loss_rd)
+                print('loss_ce ',loss_ce)
+                print('loss ',loss)
+                print('======')
                 loss.backward()
+                batch_stats = Statistics(loss = float(loss.cpu().data.numpy()),
+                                        loss_ce = float(loss_ce.cpu().data.numpy()),
+                                        loss_rd = float(loss_rd.cpu().data.numpy()),
+                                        n_docs = normalization,is_mmr_select_plus = True) # normalization is n_docs
+                total_stats.update(batch_stats)
+                report_stats.update(batch_stats)
                 
             else: 
                 loss = self.loss(sent_scores, labels.float())
                 loss = (loss * mask.float()).sum() # like reduction='sum' in F.binary_cross_entropy_with_logits
                 (loss / loss.numel()).backward()
+
+                batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization) # normalization is n_docs
+                total_stats.update(batch_stats)
+                report_stats.update(batch_stats)
             
             
             
@@ -773,10 +784,10 @@ class Trainer(object):
 
             # logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
             # logger.info("Numbers in mask are: {}".format(' '.join(map(str, mask))))
-
-            batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization) # normalization is n_docs
-            total_stats.update(batch_stats)
-            report_stats.update(batch_stats)
+            
+            # batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization) # normalization is n_docs
+            # total_stats.update(batch_stats)
+            # report_stats.update(batch_stats)
 
             # 4. Update the parameters and statistics.
             if self.grad_accum_count == 1:
@@ -847,7 +858,7 @@ class Trainer(object):
         return stat
 
     def _maybe_report_training(self, step, num_steps, learning_rate,
-                               report_stats):
+                               report_stats,is_mmr_select_plus = False):
         """
         Simple function to report training stats (if report_manager is set)
         see `onmt.utils.ReportManagerBase.report_training` for doc
@@ -855,7 +866,7 @@ class Trainer(object):
         if self.report_manager is not None:
             return self.report_manager.report_training(
                 step, num_steps, learning_rate, report_stats,
-                multigpu=self.n_gpu > 1)
+                multigpu=self.n_gpu > 1,is_mmr_select_plus = is_mmr_select_plus)
 
     def _report_step(self, learning_rate, step, train_stats=None,
                      valid_stats=None):

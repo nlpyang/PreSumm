@@ -52,7 +52,7 @@ class ReportMgrBase(object):
         logger.info(*args, **kwargs)
 
     def report_training(self, step, num_steps, learning_rate,
-                        report_stats, multigpu=False):
+                        report_stats, multigpu=False,is_mmr_select_plus = False):
         """
         This is the user-defined batch-level traing progress
         report function.
@@ -76,7 +76,9 @@ class ReportMgrBase(object):
             self._report_training(
                 step, num_steps, learning_rate, report_stats)
             self.progress_step += 1
-            return Statistics()
+            if is_mmr_select_plus:
+                return Statistics(is_mmr_select_plus=True)
+            else: return Statistics()
         else:
             return report_stats
 
@@ -167,10 +169,14 @@ class Statistics(object):
     * elapsed time
     """
 
-    def __init__(self, loss=0, n_docs=0, n_correct=0):
+    def __init__(self, loss=0, loss_ce = 0, loss_rd=0, n_docs=0, n_correct=0,is_mmr_select_plus = False):
         self.loss = loss
         self.n_docs = n_docs
         self.start_time = time.time()
+        if is_mmr_select_plus:
+            self.is_mmr_select_plus = is_mmr_select_plus
+            self.loss_ce = loss_ce
+            self.loss_rd = loss_rd
 
     @staticmethod
     def all_gather_stats(stat, max_size=4096):
@@ -230,11 +236,20 @@ class Statistics(object):
 
         self.n_docs += stat.n_docs
 
-    def xent(self):
+        if self.is_mmr_select_plus:
+            self.loss_ce += stat.loss_ce
+            self.loss_rd += stat.loss_rd
+
+    def xent(self,is_mmr_select_plus = False):
         """ compute cross entropy """
-        if (self.n_docs == 0):
-            return 0
-        return self.loss / self.n_docs
+        if is_mmr_select_plus:
+            if (self.n_docs == 0):
+                return 0
+            return self.loss / self.n_docs, self.loss_ce / self.n_docs, self.loss_rd / self.n_docs
+        else:
+            if (self.n_docs == 0):
+                return 0
+            return self.loss / self.n_docs
 
     def elapsed_time(self):
         """ compute elapsed time """
@@ -252,14 +267,27 @@ class Statistics(object):
         step_fmt = "%2d" % step
         if num_steps > 0:
             step_fmt = "%s/%5d" % (step_fmt, num_steps)
-        logger.info(
-            ("Step %s; xent: %7.5f; " +
-             "lr: %7.7f; %3.0f docs/s; %6.0f sec")
-            % (step_fmt,
-               self.xent(),
-               learning_rate,
-               self.n_docs / (t + 1e-5),
-               time.time() - start))
+        if self.is_mmr_select_plus:
+            xent,xent_ce,xent_rd = self.xent(is_mmr_select_plus = True)
+            logger.info(
+                ("Step %s; xent: %7.5f; xent_ce: %7.5f; xent_rd: %7.5f; " +
+                "lr: %7.7f; %3.0f docs/s; %6.0f sec; n_docs: %d")
+                % (step_fmt,
+                xent, xent_ce, xent_rd,
+                learning_rate,
+                self.n_docs / (t + 1e-5),
+                time.time() - start,
+                self.n_docs))
+        else:
+            logger.info(
+                ("Step %s; xent: %7.5f; " +
+                "lr: %7.7f; %3.0f docs/s; %6.0f sec; n_docs: %d")
+                % (step_fmt,
+                self.xent(),
+                learning_rate,
+                self.n_docs / (t + 1e-5),
+                time.time() - start,
+                self.n_docs))
         sys.stdout.flush()
 
     def log_tensorboard(self, prefix, writer, learning_rate, step):
