@@ -1,5 +1,5 @@
 import os
-import rouge
+#import rouge
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -415,8 +415,6 @@ class Trainer(object):
             return False
         
         
-        
-
         if (not cal_lead and not cal_oracle):
             self.model.eval()
         stats = Statistics()
@@ -425,8 +423,8 @@ class Trainer(object):
             sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
         logger.info(f'test start')
 
-        # Redundancy result dataframe 
-        redun_total = pd.DataFrame(columns = ['unique_unigrams_ratio', 
+        # Result dataframe 
+        result_total = pd.DataFrame(columns = ['unique_unigrams_ratio', 
                                               'unique_bigrams_ratio', 
                                               'unique_trigrams_ratio', 
                                               'nid',
@@ -477,7 +475,7 @@ class Trainer(object):
                                 _pred = self.__mmr_select_test(batch,i,idx,sentenceModel,sent_scores)
                                 
                             elif(self.args.block_trigram):
-                                
+                                _pred = []
                                 for j in selected_ids[i][:len(batch.src_str[i])]:
                                     if (j >= len(batch.src_str[i])):
                                         continue
@@ -508,7 +506,7 @@ class Trainer(object):
                         
 
                         #Calulate redundancy metrics
-                        redun_doc = self.cal_redun(pred)
+                        result_doc = self.cal_redun(pred)
                     
                         with open(report_path_gold, 'w') as r_gold:
                             for i in range(len(gold)):
@@ -521,23 +519,24 @@ class Trainer(object):
                             r_can.write(pred[i].strip() + '\n')
 
                         rouges_per_doc = test_rouge(self.args.temp_dir, report_path_can, report_path_gold)        
-                        redun_doc['rouge-1'] = rouges_per_doc['rouge_1_f_score']
-                        redun_doc['rouge-2'] = rouges_per_doc['rouge_2_f_score']
-                        redun_doc['rouge-l'] = rouges_per_doc['rouge_l_f_score']
-                        redun_total = redun_total.append(redun_doc)
+                        result_doc['rouge-1'] = rouges_per_doc['rouge_1_f_score']
+                        result_doc['rouge-2'] = rouges_per_doc['rouge_2_f_score']
+                        result_doc['rouge-l'] = rouges_per_doc['rouge_l_f_score']
+                        result_total = result_total.append(result_doc)
                         
                             
-        redun_mean = redun_total.mean(axis=0) # Calculate mean of each redundancy metrics
+        result_mean = result_total.mean(axis=0) # Calculate mean of each metrics
         # save dataframe to csv
-        redun_total.to_csv(self.args.result_path+'/report.csv', sep=',', index=False)
+        report_path = '%s_report.csv' %(self.args.result_path)
+        result_total.to_csv(report_path, sep=',', index=False)
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
            
         self._report_step(0, step, valid_stats=stats)
 
-        logger.info('Evaluation of Redundancy in Produced Summary: ')
-        for i, v in redun_mean.items():
+        logger.info('Evaluation Metrics in Produced Summary: ')
+        for i, v in result_mean.items():
             logger.info('     %s = %f' %(i, v))
         
         return stats
@@ -562,7 +561,8 @@ class Trainer(object):
     def _mmr_select(self, sent_scores,allSentences,sentenceModel):
         selected = []
         summary=[]
-        lamb = 0.6
+        lamb = self.args.lamb
+
         sent_limit = 3
         
         for idi, i  in  enumerate(sent_scores):
