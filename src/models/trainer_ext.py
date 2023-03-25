@@ -754,12 +754,12 @@ class Trainer(object):
                 gamma = 0.99
                 # loss = 0
                 loss = (1-gamma)*loss_ce+gamma*loss_rd
-                print('reward', mask_new)
-                print('rd no', F.binary_cross_entropy(sent_scores,rl_label,reduction='sum'))
-                print('loss_rd ',loss_rd)
-                print('loss_ce ',loss_ce)
-                print('loss ',loss)
-                print('======')
+                # print('reward', mask_new)
+                # print('rd no', F.binary_cross_entropy(sent_scores,rl_label,reduction='sum'))
+                # print('loss_rd ',loss_rd)
+                # print('loss_ce ',loss_ce)
+                # print('loss ',loss)
+                # print('======')
                 loss.backward()
                 batch_stats = Statistics(loss = float(loss.cpu().data.numpy()),
                                         loss_ce = float(loss_ce.cpu().data.numpy()),
