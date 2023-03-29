@@ -259,28 +259,23 @@ def train_single_ext(args, device_id):
     else:
         checkpoint = None
 
-    def get_posweight(datasets):
-        total_num=0
-        total_pos=0
-        for dataset in datasets:
-            for i in dataset:
-                total_num+=len(i['src_sent_labels'])
-                total_pos+=sum(i['src_sent_labels'])
+    # def get_posweight(datasets):
+    #     total_num=0
+    #     total_pos=0
+    #     for dataset in datasets:
+    #         for i in dataset:
+    #             total_num+=len(i['src_sent_labels'])
+    #             total_pos+=sum(i['src_sent_labels'])
 
-        print('====Compute pos weight done! There are %d sentences in total, with %d sentences as positive===='%(total_num,total_pos))
-        return torch.FloatTensor([(total_num-total_pos)/float(total_pos)])
+    #     print('====Compute pos weight done! There are %d sentences in total, with %d sentences as positive===='%(total_num,total_pos))
+    #     return torch.FloatTensor([(total_num-total_pos)/float(total_pos)])
     
     def train_iter_fct():
         # if is_test=False document'text is not included in data_loader
         if args.mmr_select_plus:
-            datasets = load_dataset(args, 'train', shuffle=True)
-            posweight = get_posweight(datasets)
-            if torch.cuda.is_available(): 
-               posweight=posweight.to(device_id)
-            del datasets
-            
+         
             return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
-                                        shuffle=True, is_test=True),posweight
+                                        shuffle=True, is_test=True)
         else:
             return data_loader.Dataloader(args, load_dataset(args, 'train', shuffle=True), args.batch_size, device,
                                         shuffle=True, is_test=False)

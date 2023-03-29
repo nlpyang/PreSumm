@@ -173,8 +173,8 @@ class Statistics(object):
         self.loss = loss
         self.n_docs = n_docs
         self.start_time = time.time()
+        self.is_mmr_select_plus = is_mmr_select_plus
         if is_mmr_select_plus:
-            self.is_mmr_select_plus = is_mmr_select_plus
             self.loss_ce = loss_ce
             self.loss_rd = loss_rd
 
@@ -235,7 +235,6 @@ class Statistics(object):
         self.loss += stat.loss
 
         self.n_docs += stat.n_docs
-
         if self.is_mmr_select_plus:
             self.loss_ce += stat.loss_ce
             self.loss_rd += stat.loss_rd

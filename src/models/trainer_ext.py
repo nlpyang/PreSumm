@@ -144,7 +144,7 @@ class Trainer(object):
         self._start_report_manager(start_time=total_stats.start_time)
 
         if self.args.mmr_select_plus:
-            train_iter, self.__posweight = train_iter_fct()
+            train_iter = train_iter_fct()
             sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
         else: 
             sentenceModel = None
@@ -184,11 +184,9 @@ class Trainer(object):
                         step += 1
                         if step > train_steps:
                             break
-            if self.args.mmr_select_plus:
-                train_iter, self.__posweight = train_iter_fct()
-            else: 
-                sentenceModel = None
-                train_iter = train_iter_fct()
+
+            train_iter = train_iter_fct()
+
 
         return total_stats
 
@@ -201,24 +199,26 @@ class Trainer(object):
         # Set model in validating mode.
         self.model.eval()
         stats = Statistics()
+        if self.args.mmr_select_plus:
+            pass
+        else:
+            with torch.no_grad():
+                for batch in valid_iter:
+                    src = batch.src
+                    labels = batch.src_sent_labels
+                    segs = batch.segs
+                    clss = batch.clss
+                    mask = batch.mask_src
+                    mask_cls = batch.mask_cls
 
-        with torch.no_grad():
-            for batch in valid_iter:
-                src = batch.src
-                labels = batch.src_sent_labels
-                segs = batch.segs
-                clss = batch.clss
-                mask = batch.mask_src
-                mask_cls = batch.mask_cls
+                    sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
 
-                sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
-
-                loss = self.loss(sent_scores, labels.float())
-                loss = (loss * mask.float()).sum()
-                batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
-                stats.update(batch_stats)
-            self._report_step(0, step, valid_stats=stats)
-            return stats
+                    loss = self.loss(sent_scores, labels.float())
+                    loss = (loss * mask.float()).sum()
+                    batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
+                    stats.update(batch_stats)
+                self._report_step(0, step, valid_stats=stats)
+                return stats
         
     def lambda_tuned_ext(self, test_iter_fct, step, is_file_exist = True):
         self.model.eval()
@@ -663,7 +663,7 @@ class Trainer(object):
         # print(f'greedy: {result,selected}')
         # print(f'mmr: {result_mmr,selected_mmr}')
 
-        #reward = reward_mmr-reward_greedy
+        # reward = reward_mmr-reward_greedy
         reward = reward_greedy-reward_mmr
         # print(selected, selected_mmr)
         # print(reward_greedy, reward_mmr)
@@ -759,6 +759,7 @@ class Trainer(object):
                 # print('loss_rd ',loss_rd)
                 # print('loss_ce ',loss_ce)
                 # print('loss ',loss)
+                # print('======')
                 # print('======')
                 loss.backward()
                 batch_stats = Statistics(loss = float(loss.cpu().data.numpy()),
