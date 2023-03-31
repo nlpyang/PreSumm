@@ -198,27 +198,62 @@ class Trainer(object):
         """
         # Set model in validating mode.
         self.model.eval()
-        stats = Statistics()
-        if self.args.mmr_select_plus:
-            pass
-        else:
-            with torch.no_grad():
-                for batch in valid_iter:
-                    src = batch.src
-                    labels = batch.src_sent_labels
-                    segs = batch.segs
-                    clss = batch.clss
-                    mask = batch.mask_src
-                    mask_cls = batch.mask_cls
+        stats = Statistics(is_mmr_select_plus = self.args.mmr_select_plus)
+        with torch.no_grad():
+            if self.args.mmr_select_plus:  sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+            for batch in valid_iter:
+                src = batch.src
+                labels = batch.src_sent_labels
+                segs = batch.segs
+                clss = batch.clss
+                mask = batch.mask_src
+                mask_cls = batch.mask_cls
 
-                    sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
+                sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
+                
+                
+                if self.args.mmr_select_plus:
+                    sent_scores_np = sent_scores.cpu().data.numpy()
+                    selected_ids = np.argsort(-sent_scores_np, 1)
+                    sent_scores_np = -np.sort(-sent_scores_np, 1)
+                    allSentences_list = []
+                    for i, idx in enumerate(selected_ids):
+                        allSentences = []
+                        if (len(batch.src_str[i]) == 0): continue
+                        for j in selected_ids[i][:len(batch.src_str[i])]: #loop each candidate sentence 
+                            if (j >= len(batch.src_str[i])): continue
+                            candidate = batch.src_str[i][j].strip() 
+                            allSentences.append(candidate)
+                        allSentences_list.append(allSentences)
+                    reward,rl_label = self._loss_compute(allSentences_list,sent_scores_np,batch.tgt_str,sent_scores.size(),sentenceModel)
+                    if torch.cuda.is_available(): 
+                        rl_label = rl_label.to(self.gpu_rank)
+                        reward = reward.reshape(sent_scores.shape[0], 1)
+                        reward = reward.to(self.gpu_rank)
+                    else: reward = reward.reshape(sent_scores.shape[0], 1)
 
+                    labels_float = labels.float()
+                    mask_new = labels.gt(-1).float()
+                    
+                    loss_ce = F.binary_cross_entropy(sent_scores,labels_float,weight = mask_new,reduction='sum')                
+                    mask_new = mask_new*reward
+                    loss_rd = F.binary_cross_entropy(sent_scores,rl_label,weight = mask_new,reduction='sum')
+                    gamma = 0.99
+
+                    loss = (1-gamma)*loss_ce+gamma*loss_rd
+                    # print(loss)
+                    batch_stats = Statistics(loss = float(loss.cpu().data.numpy()),
+                                            loss_ce = float(loss_ce.cpu().data.numpy()),
+                                            loss_rd = float(loss_rd.cpu().data.numpy()),
+                                            n_docs = len(labels),is_mmr_select_plus = True) # normalization is n_docs
+                    
+                else: 
                     loss = self.loss(sent_scores, labels.float())
                     loss = (loss * mask.float()).sum()
-                    batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
-                    stats.update(batch_stats)
-                self._report_step(0, step, valid_stats=stats)
-                return stats
+                    batch_stats = Statistics(float(loss.cpu().data.numpy()), n_docs = len(labels))
+                stats.update(batch_stats)
+            self._report_step(0, step, valid_stats=stats)
+            return stats
         
     def lambda_tuned_ext(self, test_iter_fct, step, is_file_exist = True):
         self.model.eval()
@@ -259,7 +294,7 @@ class Trainer(object):
                             loss = self.loss(sent_scores, labels.float())
                             loss = (loss * mask.float()).sum()
 
-                            batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
+                            batch_stats = Statistics(float(loss.cpu().data.numpy()), n_docs = len(labels))
                             stats.update(batch_stats)
 
                             sent_scores = sent_scores + mask.float()
@@ -459,7 +494,7 @@ class Trainer(object):
 
                             loss = self.loss(sent_scores, labels.float())
                             loss = (loss * mask.float()).sum()
-                            batch_stats = Statistics(float(loss.cpu().data.numpy()), len(labels))
+                            batch_stats = Statistics(float(loss.cpu().data.numpy()), n_docs = len(labels))
                             stats.update(batch_stats)
 
                             sent_scores = sent_scores + mask.float()
@@ -523,7 +558,7 @@ class Trainer(object):
                         result_doc['rouge-2'] = rouges_per_doc['rouge_2_f_score']
                         result_doc['rouge-l'] = rouges_per_doc['rouge_l_f_score']
                         result_total = result_total.append(result_doc)
-                        
+                        break   
                             
         result_mean = result_total.mean(axis=0) # Calculate mean of each metrics
         # save dataframe to csv
@@ -774,7 +809,7 @@ class Trainer(object):
                 loss = (loss * mask.float()).sum() # like reduction='sum' in F.binary_cross_entropy_with_logits
                 (loss / loss.numel()).backward()
 
-                batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization) # normalization is n_docs
+                batch_stats = Statistics(float(loss.cpu().data.numpy()), n_docs = normalization) # normalization is n_docs
                 total_stats.update(batch_stats)
                 report_stats.update(batch_stats)
             
@@ -786,7 +821,7 @@ class Trainer(object):
             # logger.info("Numbers in sent_scores are: {}".format(' '.join(map(str, sent_scores))))
             # logger.info("Numbers in mask are: {}".format(' '.join(map(str, mask))))
             
-            # batch_stats = Statistics(float(loss.cpu().data.numpy()), normalization) # normalization is n_docs
+            # batch_stats = Statistics(float(loss.cpu().data.numpy()), n_docs = normalization) # normalization is n_docs
             # total_stats.update(batch_stats)
             # report_stats.update(batch_stats)
 

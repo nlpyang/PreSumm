@@ -118,9 +118,9 @@ def validate_ext(args, device_id):
                 break
         xent_lst = sorted(xent_lst, key=lambda x: x[0])[:3]
         logger.info('PPL %s' % str(xent_lst))
-        for xent, cp in xent_lst:
-            step = int(cp.split('.')[-2].split('_')[-1])
-            test_ext(args, device_id, cp, step)
+        # for xent, cp in xent_lst:
+        #     step = int(cp.split('.')[-2].split('_')[-1])
+        #     test_ext(args, device_id, cp, step)
     else:
         while (True):
             cp_files = sorted(glob.glob(os.path.join(args.model_path, 'model_step_*.pt')))
@@ -165,9 +165,16 @@ def validate(args, device_id, pt, step):
     model = ExtSummarizer(args, device, checkpoint)
     model.eval()
 
-    valid_iter = data_loader.Dataloader(args, load_dataset(args, 'valid', shuffle=False),
-                                        args.batch_size, device,
-                                        shuffle=False, is_test=False)
+    if args.mmr_select_plus:
+        logger.info('validating in mmr_select_plus mode')
+        valid_iter = data_loader.Dataloader(args, load_dataset(args, 'valid', shuffle=False),
+                                            args.batch_size, device,
+                                            shuffle=False, is_test=True)
+    else:
+        logger.info('validating in normal mode')
+        valid_iter = data_loader.Dataloader(args, load_dataset(args, 'valid', shuffle=False),
+                                            args.batch_size, device,
+                                            shuffle=False, is_test=False)
     trainer = build_trainer(args, device_id, model, None)
     stats = trainer.validate(valid_iter, step)
     return stats.xent()

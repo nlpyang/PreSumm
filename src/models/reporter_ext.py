@@ -232,8 +232,8 @@ class Statistics(object):
                 or not
 
         """
-        self.loss += stat.loss
 
+        self.loss += stat.loss
         self.n_docs += stat.n_docs
         if self.is_mmr_select_plus:
             self.loss_ce += stat.loss_ce
@@ -246,6 +246,7 @@ class Statistics(object):
                 return 0
             return self.loss / self.n_docs, self.loss_ce / self.n_docs, self.loss_rd / self.n_docs
         else:
+
             if (self.n_docs == 0):
                 return 0
             return self.loss / self.n_docs
