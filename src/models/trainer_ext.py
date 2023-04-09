@@ -241,7 +241,8 @@ class Trainer(object):
                     gamma = 0.99
 
                     loss = (1-gamma)*loss_ce+gamma*loss_rd
-                    # print(loss)
+                    self._report_step(0, step, valid_stats=stats)
+                    print(loss)
                     batch_stats = Statistics(loss = float(loss.cpu().data.numpy()),
                                             loss_ce = float(loss_ce.cpu().data.numpy()),
                                             loss_rd = float(loss_rd.cpu().data.numpy()),
@@ -558,7 +559,7 @@ class Trainer(object):
                         result_doc['rouge-2'] = rouges_per_doc['rouge_2_f_score']
                         result_doc['rouge-l'] = rouges_per_doc['rouge_l_f_score']
                         result_total = result_total.append(result_doc)
-                        break   
+                           
                             
         result_mean = result_total.mean(axis=0) # Calculate mean of each metrics
         # save dataframe to csv
@@ -786,7 +787,7 @@ class Trainer(object):
                     exit()
                 loss_rd = F.binary_cross_entropy(sent_scores,rl_label,weight = mask_new,reduction='sum')
                 # print(f'loss_ce, loss_rd {loss_ce, loss_rd}')
-                gamma = 0.99
+                gamma = self.args.gamma
                 # loss = 0
                 loss = (1-gamma)*loss_ce+gamma*loss_rd
                 # print('reward', mask_new)

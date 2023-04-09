@@ -103,7 +103,8 @@ if __name__ == '__main__':
     parser.add_argument("-test_all", type=str2bool, nargs='?',const=True,default=False)
     parser.add_argument("-test_from", default='')
     parser.add_argument("-test_start_from", default=-1, type=int)
-    parser.add_argument("-last_trained_data", default=-1, type=str)
+    parser.add_argument("-last_trained_data", default=-1, type=int)
+
 
     parser.add_argument("-train_from", default='')
     parser.add_argument("-report_rouge", type=str2bool, nargs='?',const=True,default=True)
@@ -113,6 +114,7 @@ if __name__ == '__main__':
     parser.add_argument("-mmr_select", type=str2bool, nargs='?', const=True, default=False)
     parser.add_argument("-mmr_select_plus", type=str2bool, nargs='?', const=True, default=False)
     parser.add_argument("-lamb", default= 0.7, type=float)
+    parser.add_argument("-gamma", default= 0.99, type=float)
 
     args = parser.parse_args()
     args.gpu_ranks = [int(i) for i in range(len(args.visible_gpus.split(',')))]

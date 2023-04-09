@@ -100,7 +100,7 @@ def load_dataset(args, corpus_type, shuffle, verbose = True):
         
         if args.last_trained_data != -1:
             train_set = [int(pt.split('train.')[-1].split('.')[0]) for pt in pts]
-            last_index = train_set.index(int(args.last_trained_data))
+            last_index = train_set.index(args.last_trained_data)
             pts = pts[last_index+1:]
             logger.info(f'Remove trained data: {train_set[:last_index+1]}')
 
