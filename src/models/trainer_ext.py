@@ -238,15 +238,14 @@ class Trainer(object):
                     loss_ce = F.binary_cross_entropy(sent_scores,labels_float,weight = mask_new,reduction='sum')                
                     mask_new = mask_new*reward
                     loss_rd = F.binary_cross_entropy(sent_scores,rl_label,weight = mask_new,reduction='sum')
-                    gamma = 0.99
+                    gamma = self.args.gamma
 
                     loss = (1-gamma)*loss_ce+gamma*loss_rd
-                    self._report_step(0, step, valid_stats=stats)
-                    print(loss)
                     batch_stats = Statistics(loss = float(loss.cpu().data.numpy()),
                                             loss_ce = float(loss_ce.cpu().data.numpy()),
                                             loss_rd = float(loss_rd.cpu().data.numpy()),
                                             n_docs = len(labels),is_mmr_select_plus = True) # normalization is n_docs
+                    
                     
                 else: 
                     loss = self.loss(sent_scores, labels.float())
