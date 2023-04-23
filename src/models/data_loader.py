@@ -55,14 +55,6 @@ class Batch(object):
             
             if (is_test):
                 src_str = [x[-2] for x in data]
-                # print(f'clss {clss}')
-                # old = 0
-                # for i in clss[0]:
-                #     print(old,int(i))
-                #     print(f'{src_str[0][old:int(i)]}')
-                #     old = int(i)
-                
-                # exit()
                 setattr(self, 'src_str', src_str)
                 tgt_str = [x[-1] for x in data]
                 setattr(self, 'tgt_str', tgt_str)
