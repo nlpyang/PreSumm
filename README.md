@@ -2,7 +2,6 @@
 
 **This code is for EMNLP 2019 paper [Text Summarization with Pretrained Encoders](https://arxiv.org/abs/1908.08345)**
 
-**Updates Jan 22 2020**: Now you can **Summarize Raw Text Input!**. Swith to the dev branch, and use `-mode test_text` and use `-text_src $RAW_SRC.TXT` to input your text file. Please still use master branch for normal training and evaluation, dev branch should be only used for test_text mode.
 * abstractive use -task abs, extractive use -task ext
 * use `-test_from $PT_FILE$` to use your model checkpoint file.
 * Format of the source text file:
@@ -143,9 +142,17 @@ python preprocess.py -mode format_to_bert -raw_path JSON_PATH -save_path BERT_DA
 
 ### Extractive Setting
 
+#### BERTSUMEXT 
 ```
 python train.py -task ext -mode train -bert_data_path BERT_DATA_PATH -ext_dropout 0.1 -model_path MODEL_PATH -lr 2e-3 -visible_gpus 0,1,2 -report_every 50 -save_checkpoint_steps 1000 -batch_size 3000 -train_steps 50000 -accum_count 2 -log_file ../logs/ext_bert_cnndm -use_interval true -warmup_steps 10000 -max_pos 512
 ```
+
+
+#### BERTSUMEXT with MMR-Select+
+```
+python train.py -task ext -mode train -mmr_select_plus -gamma 0.7 -bert_data_path BERT_DATA_PATH -ext_dropout 0.1 -model_path MODEL_PATH -lr 2e-3 -visible_gpus 0,1,2 -report_every 50 -save_checkpoint_steps 1000 -batch_size 3000 -train_steps 50000 -accum_count 2 -log_file ../logs/ext_bert_cnndm -use_interval true -warmup_steps 10000 -max_pos 512
+```
+* Able to adjust gamma with `-gamma`
 
 ### Abstractive Setting
 
@@ -167,15 +174,25 @@ python train.py  -task abs -mode train -bert_data_path BERT_DATA_PATH -dec_dropo
 
 
 ## Model Evaluation
-### CNN/DM
+There are 3 type of redundancy reduction method options
+* Non redundancy reduction method 
+* Trigram Blocking use `-block_trigram` 
+* MMR-Select use `-mmr_select` and adjust lambda with `-lamb`
 ```
- python train.py -task abs -mode validate -batch_size 3000 -test_batch_size 500 -bert_data_path BERT_DATA_PATH -log_file ../logs/val_abs_bert_cnndm -model_path MODEL_PATH -sep_optim true -use_interval true -visible_gpus 1 -max_pos 512 -max_length 200 -alpha 0.95 -min_length 50 -result_path ../logs/abs_bert_cnndm 
+ python train.py -task ext -mode test -mmr_select -lamb 0.7 -batch_size 3000 -test_batch_size 500 -bert_data_path BERT_DATA_PATH -log_file ../logs/val_abs_bert_cnndm -model_path MODEL_PATH -sep_optim true -use_interval true -visible_gpus 1 -max_pos 512 -max_length 200 -alpha 0.95 -min_length 50 -result_path ../logs/abs_bert_cnndm 
 ```
-### XSum
-```
- python train.py -task abs -mode validate -batch_size 3000 -test_batch_size 500 -bert_data_path BERT_DATA_PATH -log_file ../logs/val_abs_bert_cnndm -model_path MODEL_PATH -sep_optim true -use_interval true -visible_gpus 1 -max_pos 512 -min_length 20 -max_length 100 -alpha 0.9 -result_path ../logs/abs_bert_cnndm 
-```
+
 * `-mode` can be {`validate, test`}, where `validate` will inspect the model directory and evaluate the model for each newly saved checkpoint, `test` need to be used with `-test_from`, indicating the checkpoint you want to use
 * `MODEL_PATH` is the directory of saved checkpoints
 * use `-mode valiadte` with `-test_all`, the system will load all saved checkpoints and select the top ones to generate summaries (this will take a while)
 
+## Test text Mode
+ Test text Mode is mode for using or testing model by input is in text format.
+ * use `-text_src` to specific text file for summarization
+ * use `-text_tgt` to specific target text file for ROUGE and Redundancy  Testing
+ * In this mode there are redundancy reduction methods like Model Evaluation
+
+ ```
+ python train.py -task ext -mode test_text -mmr_select -test_from MODEL_PATH -text_src SOURCE_FILE_PATH -text_tgt TARGET_FILE_PATH -result_path ../results/test_text -visible_gpus 0 -log_file ../logs/test_text.log
+ 
+ ```

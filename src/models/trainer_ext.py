@@ -252,6 +252,7 @@ class Trainer(object):
                     loss = (loss * mask.float()).sum()
                     batch_stats = Statistics(float(loss.cpu().data.numpy()), n_docs = len(labels))
                 stats.update(batch_stats)
+                
             self._report_step(0, step, valid_stats=stats)
             return stats
         
@@ -261,6 +262,7 @@ class Trainer(object):
         sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
         
         result_path = '%slambda_tuned_ext_report.txt' % (self.args.result_path)
+        logger.info(f'lambda_tuned_ext_report.txt: {result_path}')
         now = datetime.now()
         current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
         with open(result_path, 'a') as f:
@@ -316,7 +318,7 @@ class Trainer(object):
                             # print(pred)
                             redun_doc = self.cal_redun(pred)
                             redun_total = redun_total.append(redun_doc)
-
+                            
             redun_mean = redun_total.mean(axis=0)
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             f1 = np.array(rouges['rouge_1_f_score'])
@@ -450,7 +452,7 @@ class Trainer(object):
         
         if (not cal_lead and not cal_oracle):
             self.model.eval()
-        stats = Statistics()
+        # stats = Statistics()
         # Set sentence embedding model
         if(self.args.mmr_select):
             sentenceModel = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
@@ -490,10 +492,10 @@ class Trainer(object):
                         else:
                             sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
 
-                            loss = self.loss(sent_scores, labels.float())
-                            loss = (loss * mask.float()).sum()
-                            batch_stats = Statistics(float(loss.cpu().data.numpy()), n_docs = len(labels))
-                            stats.update(batch_stats)
+                            # loss = self.loss(sent_scores, labels.float())
+                            # loss = (loss * mask.float()).sum()
+                            # batch_stats = Statistics(float(loss.cpu().data.numpy()), n_docs = len(labels))
+                            # stats.update(batch_stats)
 
                             sent_scores = sent_scores + mask.float()
                             sent_scores = sent_scores.cpu().data.numpy()
@@ -504,7 +506,7 @@ class Trainer(object):
                             if (len(batch.src_str[i]) == 0):
                                 continue
                             
-                            if(self.args.mmr_select):                        
+                            if(self.args.mmr_select):                      
                                 _pred = self.__mmr_select_test(batch,i,idx,sentenceModel,sent_scores)
                                 
                             elif(self.args.block_trigram):
@@ -556,7 +558,7 @@ class Trainer(object):
                         result_doc['rouge-2'] = rouges_per_doc['rouge_2_f_score']
                         result_doc['rouge-l'] = rouges_per_doc['rouge_l_f_score']
                         result_total = result_total.append(result_doc)
-                           
+                        break   
                             
         result_mean = result_total.mean(axis=0) # Calculate mean of each metrics
         # save dataframe to csv
@@ -566,13 +568,13 @@ class Trainer(object):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
            
-        self._report_step(0, step, valid_stats=stats)
+        # self._report_step(0, step, valid_stats=stats)
 
         logger.info('Evaluation Metrics in Produced Summary: ')
         for i, v in result_mean.items():
             logger.info('     %s = %f' %(i, v))
         
-        return stats
+        # return stats
 
     # Greedy method for loss calculation
     def _greedy_nommr(self, sent_scores,allSentences):
