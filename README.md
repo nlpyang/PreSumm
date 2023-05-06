@@ -194,5 +194,4 @@ There are 3 type of redundancy reduction method options
 
  ```
  python train.py -task ext -mode test_text -mmr_select -test_from MODEL_PATH -text_src SOURCE_FILE_PATH -text_tgt TARGET_FILE_PATH -result_path ../results/test_text -visible_gpus 0 -log_file ../logs/test_text.log
- 
  ```
